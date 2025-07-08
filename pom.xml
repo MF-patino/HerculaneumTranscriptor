@@ -104,7 +104,7 @@
 				<artifactId>openapi-generator-maven-plugin</artifactId>
 				<executions>
 					<execution>
-						<id>generate-api-code</id>
+						<id>generate-user-api-code</id>
 						<goals>
 							<goal>generate</goal>
 						</goals>
@@ -128,8 +128,84 @@
 								<dateLibrary>java21</dateLibrary>
 								<bigDecimalAsString>true</bigDecimalAsString>
 								<useBeanValidation>true</useBeanValidation>
-								<apiPackage>api</apiPackage>
-								<modelPackage>dto</modelPackage>
+								<apiPackage>user.api</apiPackage>
+								<modelPackage>user.dto</modelPackage>
+							</configOptions>
+							<typeMappings>
+								<typeMapping>OffsetDateTime=LocalDateTime</typeMapping>
+							</typeMappings>
+							<importMappings>
+								<importMapping>java.time.OffsetDateTime=java.time.LocalDateTime</importMapping>
+							</importMappings>
+						</configuration>
+					</execution>
+
+
+					<execution>
+						<id>generate-annotatiopn-api-code</id>
+						<goals>
+							<goal>generate</goal>
+						</goals>
+						<configuration>
+							<inputSpec>${project.basedir}/src/main/resources/annotationApi.yaml</inputSpec>
+							<generateSupportingFiles>false</generateSupportingFiles>
+							<generatorName>spring</generatorName>
+							<strictSpec>true</strictSpec>
+							<generateApiTests>false</generateApiTests>
+							<generateModelTests>false</generateModelTests>
+							<configOptions>
+								<controllerThrowsExceptions>java.io.IOException,com.example.NotFoundException</controllerThrowsExceptions>
+								<interfaceOnly>true</interfaceOnly>
+								<skipDefaultInterface>true</skipDefaultInterface>
+								<useBeanValidation>true</useBeanValidation>
+								<useClassLevelBeanValidation>false</useClassLevelBeanValidation>
+								<useTags>true</useTags>
+								<java21>true</java21>
+								<useOptional>false</useOptional>
+								<hideGenerationTimestamp>true</hideGenerationTimestamp>
+								<dateLibrary>java21</dateLibrary>
+								<bigDecimalAsString>true</bigDecimalAsString>
+								<useBeanValidation>true</useBeanValidation>
+								<apiPackage>annotation.api</apiPackage>
+								<modelPackage>annotation.dto</modelPackage>
+							</configOptions>
+							<typeMappings>
+								<typeMapping>OffsetDateTime=LocalDateTime</typeMapping>
+							</typeMappings>
+							<importMappings>
+								<importMapping>java.time.OffsetDateTime=java.time.LocalDateTime</importMapping>
+							</importMappings>
+						</configuration>
+					</execution>
+
+
+					<execution>
+						<id>generate-comment-api-code</id>
+						<goals>
+							<goal>generate</goal>
+						</goals>
+						<configuration>
+							<inputSpec>${project.basedir}/src/main/resources/commentApi.yaml</inputSpec>
+							<generateSupportingFiles>false</generateSupportingFiles>
+							<generatorName>spring</generatorName>
+							<strictSpec>true</strictSpec>
+							<generateApiTests>false</generateApiTests>
+							<generateModelTests>false</generateModelTests>
+							<configOptions>
+								<controllerThrowsExceptions>java.io.IOException,com.example.NotFoundException</controllerThrowsExceptions>
+								<interfaceOnly>true</interfaceOnly>
+								<skipDefaultInterface>true</skipDefaultInterface>
+								<useBeanValidation>true</useBeanValidation>
+								<useClassLevelBeanValidation>false</useClassLevelBeanValidation>
+								<useTags>true</useTags>
+								<java21>true</java21>
+								<useOptional>false</useOptional>
+								<hideGenerationTimestamp>true</hideGenerationTimestamp>
+								<dateLibrary>java21</dateLibrary>
+								<bigDecimalAsString>true</bigDecimalAsString>
+								<useBeanValidation>true</useBeanValidation>
+								<apiPackage>annotation.api</apiPackage>
+								<modelPackage>annotation.dto</modelPackage>
 							</configOptions>
 							<typeMappings>
 								<typeMapping>OffsetDateTime=LocalDateTime</typeMapping>
