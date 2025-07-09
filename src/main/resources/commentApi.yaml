@@ -1,0 +1,202 @@
+openapi: 3.0.3
+info:
+  title: Comments API
+  description: |-
+    This API specifies the operations for submitting and viewing comments on transcripted regions of a given scroll.
+    It is intended to be used by clients that have already authenticated against the User Management API
+    and possess a valid JWT.
+  version: 1.0.1
+servers:
+  - url: https://localhost:8080/ # Assuming annotations run on a different port
+tags:
+  - name: comments
+    description: Operations on comments within an annotation region
+
+paths:
+  /scrolls/{scrollId}/regions/{regionId}/comments:
+    get:
+      tags:
+        - comments
+      summary: Get all comments for a given region
+      description: |
+        Retrieves all comments in a region for a given scroll.
+        Use the `since` parameter with the `lastSyncTimestamp` from the response to get delta updates for client synchronization.
+        Clients can use this for an initial data load and for subsequent polling for changes.
+      operationId: getRegionComments
+      security:
+        - bearerAuth: [ ]
+      parameters:
+        - name: scrollId
+          in: path
+          description: The unique identifier of the scroll to comment on.
+          required: true
+          schema:
+            type: string
+        - name: regionId
+          in: path
+          description: The unique identifier of the region to comment on.
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: since
+          in: query
+          description: Optional timestamp to fetch only comments created or updated since that time.
+          required: false
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                description: A container for comment updates, used for client synchronization.
+                properties:
+                  lastSyncTimestamp:
+                    type: string
+                    format: date-time
+                    description: The timestamp of this response, to be used in the `since` parameter for the next poll.
+                  comments:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Comment'
+        '401':
+          $ref: 'userApi.yaml#/components/responses/UnauthorizedError'
+        '404':
+          description: Scroll not found
+          content:
+            application/json:
+              schema:
+                $ref: 'userApi.yaml#/components/responses/Error'
+    post:
+      tags:
+        - comments
+      summary: Add a comment to a region
+      description: |
+        Adds a comment to a specific annotation region. Requires at least `write` permissions.
+      operationId: addCommentToRegion
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: scrollId
+          in: path
+          description: The unique identifier of the scroll.
+          required: true
+          schema:
+            type: string
+        - name: regionId
+          in: path
+          description: The unique identifier of the region to comment on.
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        description: The text content of the comment.
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - text
+              properties:
+                text:
+                  type: string
+                  example: "I am almost certain this is a 'Π' (Pi)."
+      responses:
+        '201':
+          description: Comment created successfully.
+        '401':
+          $ref: 'userApi.yaml#/components/responses/UnauthorizedError'
+        '403':
+          description: User does not have write permissions.
+          content:
+            application/json:
+              schema:
+                $ref: 'userApi.yaml#/components/responses/Error'
+        '404':
+          description: Scroll or region not found
+          content:
+            application/json:
+              schema:
+                $ref: 'userApi.yaml#/components/responses/Error'
+
+  /scrolls/{scrollId}/regions/{regionId}/comments/{commentId}:
+    delete:
+      tags:
+        - comments
+      summary: Delete a comment
+      description: |
+        Deletes a comment from an annotation region.
+        This can only be done by the original author of the comment or a user with `admin` or `root` permissions.
+      operationId: deleteComment
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: scrollId
+          in: path
+          description: The unique identifier of the scroll.
+          required: true
+          schema:
+            type: string
+        - name: regionId
+          in: path
+          description: The unique identifier of the region.
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: commentId
+          in: path
+          description: The unique identifier of the comment to delete.
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Deletion successful
+        '401':
+          $ref: 'userApi.yaml#/components/responses/UnauthorizedError'
+        '403':
+          description: User is not authorized to delete this comment.
+          content:
+            application/json:
+              schema:
+                $ref: 'userApi.yaml#/components/responses/Error'
+        '404':
+          description: Scroll, Region, or Comment not found
+          content:
+            application/json:
+              schema:
+                $ref: 'userApi.yaml#/components/responses/Error'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Comment:
+      type: object
+      properties:
+        commentId:
+          type: string
+          format: uuid
+          readOnly: true
+        authorUsername:
+          type: string
+          readOnly: true
+        text:
+          type: string
+          example: "I think this might be a delta, not an alpha."
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true

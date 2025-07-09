@@ -1,0 +1,350 @@
+openapi: 3.0.3
+info:
+  title: Annotations API
+  description: |-
+    This API specifies the operations for creating, editing, and viewing annotations on virtually unwrapped scrolls.
+    It is intended to be used by clients that have already authenticated against the User Management API
+    and possess a valid JWT.
+  version: 1.0.1
+servers:
+  - url: https://localhost:8080/ # Assuming annotations run on a different port
+tags:
+  - name: annotations
+    description: Operations on scroll annotations (box regions)
+
+paths:
+  /scrolls/{scrollId}/regions:
+    get:
+      tags:
+        - annotations
+      summary: Get all box regions for a scroll
+      description: |
+        Retrieves all box regions for a given scroll.
+        Use the `since` parameter with the `lastSyncTimestamp` from the response to get delta updates for client synchronization.
+        Clients can use this for an initial data load and for subsequent polling for changes.
+      operationId: getScrollRegions
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: scrollId
+          in: path
+          description: The unique identifier of the scroll being annotated.
+          required: true
+          schema:
+            type: string
+        - name: since
+          in: query
+          description: Optional timestamp to fetch only regions created or updated since that time.
+          required: false
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegionUpdateResponse'
+        '401':
+          $ref: 'userApi.yaml#/components/responses/UnauthorizedError'
+        '404':
+          description: Scroll not found
+          content:
+            application/json:
+              schema:
+                $ref: 'userApi.yaml#/components/responses/Error'
+
+    post:
+      tags:
+        - annotations
+      summary: Create a new box region
+      description: |
+        Creates a new annotation box on a scroll. Requires `write` permission.
+        The user creating the box is automatically the author.
+      operationId: createRegion
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: scrollId
+          in: path
+          description: The unique identifier of the scroll.
+          required: true
+          schema:
+            type: string
+      requestBody:
+        description: The new box region to create.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewBoxRegion'
+      responses:
+        '21Created':
+          description: Region created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BoxRegion'
+        '401':
+          $ref: 'userApi.yaml#/components/responses/UnauthorizedError'
+        '403':
+          description: User does not have write permissions
+          content:
+            application/json:
+              schema:
+                $ref: 'userApi.yaml#/components/responses/Error'
+        '404':
+          description: Scroll not found
+          content:
+            application/json:
+              schema:
+                $ref: 'userApi.yaml#/components/responses/Error'
+
+  /scrolls/{scrollId}/regions/{regionId}:
+    put:
+      tags:
+        - annotations
+      summary: Update an existing box region
+      description: |
+        Updates the properties of an existing box region, such as its coordinates or transcription.
+        Requires `write` permission. Only the author or an `admin`/`root` user can edit a region.
+      operationId: updateRegion
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: scrollId
+          in: path
+          description: The unique identifier of the scroll.
+          required: true
+          schema:
+            type: string
+        - name: regionId
+          in: path
+          description: The unique identifier of the region to update.
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        description: The updated information for the box region.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewBoxRegion' # Re-use the same schema as creation
+      responses:
+        '200':
+          description: Update successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BoxRegion'
+        '401':
+          $ref: 'userApi.yaml#/components/responses/UnauthorizedError'
+        '403':
+          description: User is not authorized to edit this region
+          content:
+            application/json:
+              schema:
+                $ref: 'userApi.yaml#/components/responses/Error'
+        '404':
+          description: Scroll or region not found
+          content:
+            application/json:
+              schema:
+                $ref: 'userApi.yaml#/components/responses/Error'
+
+    delete:
+      tags:
+        - annotations
+      summary: Delete a box region
+      description: |
+        Deletes an annotation box. Requires `write` permission.
+        Only the author of the region or an `admin`/`root` user can delete it.
+      operationId: deleteRegion
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: scrollId
+          in: path
+          description: The unique identifier of the scroll.
+          required: true
+          schema:
+            type: string
+        - name: regionId
+          in: path
+          description: The unique identifier of the region to delete.
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Deletion successful
+        '401':
+          $ref: 'userApi.yaml#/components/responses/UnauthorizedError'
+        '403':
+          description: User is not authorized to delete this region
+          content:
+            application/json:
+              schema:
+                $ref: 'userApi.yaml#/components/responses/Error'
+        '404':
+          description: Scroll or Region not found
+          content:
+            application/json:
+              schema:
+                $ref: 'userApi.yaml#/components/responses/Error'
+
+  /scrolls/{scrollId}/regions/{regionId}/vote:
+    post:
+      tags:
+        - annotations
+      summary: Vote on the certainty of a transcription
+      description: |
+        Allows a logged-in user to submit their certainty score (0-5) for a specific region.
+        The server will recalculate and update the region's `certaintyScore`.
+        Requires `write` permission. A user can only vote once per region.
+      operationId: voteOnRegion
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: scrollId
+          in: path
+          description: The unique identifier of the scroll.
+          required: true
+          schema:
+            type: string
+        - name: regionId
+          in: path
+          description: The unique identifier of the region to vote on.
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        description: The user's vote.
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - vote
+              properties:
+                vote:
+                  type: integer
+                  format: int32
+                  description: A certainty score from 0 (completely uncertain) to 5 (absolutely certain).
+                  minimum: 0
+                  maximum: 5
+      responses:
+        '200':
+          description: Vote cast successfully. Returns the updated region.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BoxRegion'
+        '401':
+          $ref: 'userApi.yaml#/components/responses/UnauthorizedError'
+        '403':
+          description: User does not have write permissions or has already voted.
+          content:
+            application/json:
+              schema:
+                $ref: 'userApi.yaml#/components/responses/Error'
+        '404':
+          description: Scroll or region not found
+          content:
+            application/json:
+              schema:
+                $ref: 'userApi.yaml#/components/responses/Error'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Coordinates:
+      type: object
+      description: Defines the position and size of a 2D box.
+      properties:
+        x:
+          type: number
+        y:
+          type: number
+        width:
+          type: number
+        height:
+          type: number
+      required:
+        - x
+        - y
+        - width
+        - height
+
+    NewBoxRegion:
+      type: object
+      description: Information required to create or update a box region.
+      properties:
+        coordinates:
+          $ref: '#/components/schemas/Coordinates'
+        transcription:
+          type: string
+          description: The transcribed Greek text within the box.
+          example: 'πορφυρας'
+      required:
+        - coordinates
+        - transcription
+
+    BoxRegion:
+      type: object
+      description: The full representation of an annotation box region.
+      properties:
+        regionId:
+          type: string
+          format: uuid
+          readOnly: true
+        authorUsername:
+          type: string
+          readOnly: true
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          readOnly: true
+        basic_info:
+          $ref: '#/components/schemas/NewBoxRegion'
+        certaintyScore:
+          type: number
+          format: float
+          description: An averaged score from 0 to 5 based on user votes.
+          readOnly: true
+          example: 4.5
+      required:
+        - regionId
+        - authorUsername
+        - createdAt
+        - updatedAt
+        - coordinates
+        - transcription
+
+    RegionUpdateResponse:
+      type: object
+      description: A container for region updates, used for client synchronization.
+      properties:
+        lastSyncTimestamp:
+          type: string
+          format: date-time
+          description: The timestamp of this response, to be used in the `since` parameter for the next poll.
+        regions:
+          type: array
+          items:
+            $ref: '#/components/schemas/BoxRegion'
