@@ -1,0 +1,12 @@
+services:
+  # PostgreSQL instance for data persistence
+  db:
+    image: postgres
+    ports:
+      - "5432:5432"
+
+    restart: always
+    environment:
+      - POSTGRES_PASSWORD=sa
+      - POSTGRES_USER=sa
+      - POSTGRES_DB=scrolls

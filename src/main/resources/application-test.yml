@@ -1,0 +1,9 @@
+spring:
+  application:
+    name: HerculaneumTranscriptor
+
+  # for testing, use an H2 in-memory database
+  datasource:
+    url: jdbc:h2:mem:db;DB_CLOSE_DELAY=-1
+    username: sa
+    password: sa
