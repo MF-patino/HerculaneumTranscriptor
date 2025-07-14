@@ -1,3 +1,13 @@
 spring:
   application:
     name: HerculaneumTranscriptor
+
+  jpa:
+    hibernate:
+      ddl-auto: update # creates needed tables if they don't exist
+
+  # use database instance
+  datasource:
+    url: jdbc:postgresql://localhost:5432/scrolls
+    username: sa
+    password: sa
