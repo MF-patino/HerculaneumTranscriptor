@@ -1,5 +1,6 @@
 package com.mf.HerculaneumTranscriptor.security;
 
+import com.mf.HerculaneumTranscriptor.service.UserService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,6 +21,7 @@ import java.io.IOException;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
   private final JwtUtil jwtUtil;
+  private final UserService userService;
 
 
   /**
@@ -41,7 +43,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     if (token != null && jwtUtil.validateToken(token)) {
       // The JWT is valid, we can build an authentication object from it
-      UserDetails userDetails = jwtUtil.extractDetails(token);
+      String subject = jwtUtil.extractSubject(token);
+      UserDetails userDetails = new JwtUserDetails(userService.findUserByUsername(subject));
 
       WebAuthenticationDetails authDetails = new WebAuthenticationDetailsSource().buildDetails(request);
       Authentication authentication = new JwtAuthentication(userDetails, token, authDetails);

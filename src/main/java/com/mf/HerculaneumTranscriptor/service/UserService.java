@@ -19,10 +19,10 @@ public interface UserService {
    * Registers a new user in the system.
    *
    * @param registrationInfo DTO containing new user details.
-   * @return UserInfo of the newly created user.
+   * @return An AuthenticationResponse containing the JWT andUserInfo of the newly created user.
    * @throws com.mf.HerculaneumTranscriptor.exception.UserAlreadyExistsException if username or email is taken.
    */
-  UserInfo registerNewUser(UserRegisterInfo registrationInfo) throws UserAlreadyExistsException;
+  AuthenticationResponse registerNewUser(UserRegisterInfo registrationInfo) throws UserAlreadyExistsException;
 
   /**
    * Authenticates a user and generates an access token.
