@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -38,11 +39,12 @@ public class SecurityConfiguration {
                                          JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception{
     return http
             .csrf(AbstractHttpConfigurer::disable) // CSRF is disabled as JWTs are in headers
+            .cors(Customizer.withDefaults()) // Handles CORS issues (e.g. preflight requests)
             // We are using JWT, so sessions are stateless
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests((auth) -> auth
                     // Defining public endpoints
-                    .requestMatchers("/register").permitAll()
+                    .requestMatchers("/register", "/error").permitAll()
                     .requestMatchers(HttpMethod.POST,"/user").permitAll() // Matches the POST login endpoint
 
                     // Securing other endpoints
