@@ -37,7 +37,12 @@ public class UserController implements UserApi {
 
   @Override
   public ResponseEntity<UserInfo> loginUser(UserLoginInfo userLoginInfo) {
-    return null;
+    AuthenticationResponse authInfo = userService.login(userLoginInfo);
+
+    // JWT is returned in the Authorization header
+    return ResponseEntity.ok()
+            .header(HttpHeaders.AUTHORIZATION, "Bearer " + authInfo.getToken())
+            .body(authInfo.getUserInfo());
   }
 
   @Override

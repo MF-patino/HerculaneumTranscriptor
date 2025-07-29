@@ -9,6 +9,7 @@ import com.mf.HerculaneumTranscriptor.repository.UserRepository;
 import com.mf.HerculaneumTranscriptor.security.JwtUtil;
 import com.mf.HerculaneumTranscriptor.service.UserService;
 import lombok.AllArgsConstructor;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -43,7 +44,16 @@ public class UserServiceImpl implements UserService {
 
   @Override
   public AuthenticationResponse login(UserLoginInfo loginInfo) throws AuthenticationException {
-    return null;
+    AuthenticationException exception = new BadCredentialsException("Incorrect username or password");
+
+    User user = userRepository.findByUsername(loginInfo.getUserName())
+        .orElseThrow(() -> exception);
+
+    if (!passwordEncoder.matches(loginInfo.getPassword(), user.getPasswordHash())) {
+      throw exception;
+    }
+
+    return new AuthenticationResponse(jwtUtil.generateToken(user.getUsername()), userMapper.userToUserInfo(user));
   }
 
   @Override
