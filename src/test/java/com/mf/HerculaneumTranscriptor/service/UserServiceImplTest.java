@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -49,6 +50,7 @@ public class UserServiceImplTest {
   private User user;
   private UserInfo userInfo;
   private UserRegisterInfo userRegisterInfo;
+  private UserLoginInfo userLoginInfo;
 
   private static final String ENCODED_PASSWORD = "encodedPassword";
   private static final String PASSWORD = "password123";
@@ -84,7 +86,54 @@ public class UserServiceImplTest {
     userRegisterInfo = new UserRegisterInfo();
     userRegisterInfo.setBasicInfo(basicInfo);
     userRegisterInfo.setPassword(PASSWORD);
+
+    userLoginInfo = new UserLoginInfo();
+    userLoginInfo.setUserName(USERNAME);
+    userLoginInfo.setPassword(PASSWORD);
   }
+
+  // Tests for login
+
+  @Test
+  void login_shouldReturnAuthenticationResponse_whenCredentialsAreValid() {
+    // Arrange
+    // Mock the password checker to flag passwords as matching
+    when(passwordEncoder.matches(anyString(), anyString()))
+            .thenReturn(true);
+    when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(user));
+    when(userMapper.userToUserInfo(user)).thenReturn(userInfo);
+
+    // Act
+    AuthenticationResponse response = userService.login(userLoginInfo);
+
+    // Assert
+    assertThat(response.getUserInfo()).isEqualTo(userInfo);
+  }
+
+  @Test
+  void login_shouldThrowBadCredentialsException_whenCredentialsAreInvalid() {
+    // Arrange
+    // Mock the user being correctly found
+    when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(user));
+    // Mock the password checker to flag passwords as different
+    when(passwordEncoder.matches(anyString(), anyString()))
+            .thenReturn(false);
+
+    // Act & Assert
+    assertThrows(BadCredentialsException.class, () -> userService.login(userLoginInfo));
+  }
+
+  @Test
+  void login_shouldThrowBadCredentialsException_whenUserNotFound() {
+    // Arrange
+    // Mock the password checker to detect different passwords
+    when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.empty());
+
+    // Act & Assert
+    // Assert that the specific security exception is thrown
+    assertThrows(BadCredentialsException.class, () -> userService.login(userLoginInfo));
+  }
+
 
   // Tests for registerNewUser
 
