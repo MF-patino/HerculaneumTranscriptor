@@ -3,6 +3,7 @@ package com.mf.HerculaneumTranscriptor.service;
 import com.mf.HerculaneumTranscriptor.dto.AuthenticationResponse;
 import com.mf.HerculaneumTranscriptor.exception.ResourceNotFoundException;
 import com.mf.HerculaneumTranscriptor.exception.UserAlreadyExistsException;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.AuthenticationException;
 import user.dto.ChangePermissions;
 import user.dto.UserInfo;
@@ -44,27 +45,35 @@ public interface UserService {
 
   /**
    * Deletes a user from the system.
+   * Regular users can delete their own account.
+   * Only ROOT or ADMIN users can delete other users, but the ROOT user cannot be deleted.
    *
    * @param username The username of the user to delete.
    * @throws com.mf.HerculaneumTranscriptor.exception.ResourceNotFoundException if no user is found.
    */
+  @PreAuthorize("@securityLogic.hasAuthorityOver(authentication, #username)")
   void deleteUserByUsername(String username) throws ResourceNotFoundException;
 
   /**
    * Updates a user's profile information.
+   * Regular users can update their own profile.
+   * Only ROOT or ADMIN users can update other users' profiles, but admins cannot update the ROOT user.
    *
    * @param username The username of the user to update.
    * @param updateInfo DTO with the new profile information.
    * @throws com.mf.HerculaneumTranscriptor.exception.ResourceNotFoundException if no user is found.
    */
+  @PreAuthorize("hasRole('ROOT') or @securityLogic.hasAuthorityOver(authentication, #username")
   void updateUserProfile(String username, UserRegisterInfo updateInfo) throws ResourceNotFoundException;
 
   /**
    * Changes the permission level for a given user.
+   * Only ROOT or ADMIN users can perform this operation but the target user can never be the ROOT user.
    *
    * @param username The username of the user to update.
    * @param newPermissions DTO containing the new permission level.
    * @throws com.mf.HerculaneumTranscriptor.exception.ResourceNotFoundException if no user is found.
    */
+  @PreAuthorize("(hasRole('ROOT') or hasRole('ADMIN')) and @securityLogic.hasAuthorityOver(authentication, #username)")
   void changeUserPermissions(String username, ChangePermissions newPermissions);
 }
