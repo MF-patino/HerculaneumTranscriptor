@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -19,6 +20,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import javax.crypto.SecretKey;
 
 @Configuration
+@EnableMethodSecurity
 public class SecurityConfiguration {
   @Value( "${security.secret}" )
   private String jwtSecret;
@@ -47,10 +49,8 @@ public class SecurityConfiguration {
                     .requestMatchers("/register", "/error").permitAll()
                     .requestMatchers(HttpMethod.POST,"/user").permitAll() // Matches the POST login endpoint
 
-                    // Securing other endpoints
-                    // Must have 'ADMIN' role/authority to change permissions
-                    .requestMatchers(HttpMethod.PUT, "/permissions/{username}").hasAuthority("ROLE_ADMIN")
                     // Any other request must be authenticated
+                    // The fine-grained rules are handled by @PreAuthorize.
                     .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
