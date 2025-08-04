@@ -11,17 +11,16 @@ import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-import user.dto.BasicUserInfo;
-import user.dto.UserInfo;
-import user.dto.UserLoginInfo;
-import user.dto.UserRegisterInfo;
+import user.dto.*;
 
 import java.util.Optional;
 
@@ -47,11 +46,13 @@ public class UserServiceImplTest {
   @MockitoBean
   private PasswordEncoder passwordEncoder;
 
+  // Reusable test data objects
   private User user;
   private UserInfo userInfo;
   private UserRegisterInfo userRegisterInfo;
   private UserLoginInfo userLoginInfo;
 
+  // Constants for test data objects
   private static final String ENCODED_PASSWORD = "encodedPassword";
   private static final String PASSWORD = "password123";
   private static final String USERNAME = "JohnDoe";
@@ -195,5 +196,166 @@ public class UserServiceImplTest {
 
     // Act & Assert
     assertThrows(ResourceNotFoundException.class, () -> userService.findUserByUsername(UNK_USERNAME));
+  }
+
+  // Tests for deleteUserByUsername
+
+  @Test
+  @WithMockUser(username = USERNAME, roles = {"ADMIN"})
+  void deleteUserByUsername_shouldDeleteUser_whenUserExists() {
+    // Arrange
+    when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(user));
+    doNothing().when(userRepository).delete(any(User.class));
+
+    // Act
+    userService.deleteUserByUsername(USERNAME);
+
+    // Assert
+    // Verify that the delete method was called exactly once with the correct user object
+    verify(userRepository, times(1)).delete(user);
+  }
+
+  @Test
+  @WithMockUser(username = USERNAME, roles = {"ADMIN"})
+  void deleteUserByUsername_shouldThrowResourceNotFoundException_whenUserDoesNotExist() {
+    // Arrange
+    when(userRepository.findByUsername(UNK_USERNAME)).thenReturn(Optional.empty());
+
+    // Act & Assert
+    assertThrows(ResourceNotFoundException.class, () -> userService.deleteUserByUsername(UNK_USERNAME));
+
+    // Verify that the delete method was never called
+    verify(userRepository, never()).delete(any());
+  }
+
+
+  // Tests for updateUserProfile
+
+  @Test
+  @WithMockUser(username = USERNAME, roles = {"READ"})
+  void updateUserProfile_shouldUpdateInfo_whenPasswordIsNull() {
+    // Arrange
+    // Password is null in this DTO, and all personal information is different
+    UserRegisterInfo updateInfo = new UserRegisterInfo();
+    BasicUserInfo newBasicInfo = new BasicUserInfo();
+    newBasicInfo.setUsername("NewJohnDoe");
+    newBasicInfo.setFirstName("Jonathan");
+    newBasicInfo.setLastName("Doer");
+    newBasicInfo.setContact("jonathan.doer@example.com");
+    updateInfo.setBasicInfo(newBasicInfo);
+
+    User mappedUpdateUser = new User();
+    mappedUpdateUser.setUsername("NewJohnDoe");
+    mappedUpdateUser.setFirstName("Jonathan");
+    mappedUpdateUser.setLastName("Doer");
+    mappedUpdateUser.setContact("jonathan.doer@example.com");
+
+    when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(user));
+    when(userMapper.userRegisterInfoToUser(updateInfo)).thenReturn(mappedUpdateUser);
+    when(userRepository.existsByUsername("NewJohnDoe")).thenReturn(false);
+
+    // Act
+    userService.updateUserProfile(USERNAME, updateInfo);
+
+    // Assert
+    // Use ArgumentCaptor to capture the object passed to the save method
+    ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+    verify(userRepository).save(userCaptor.capture());
+    User savedUser = userCaptor.getValue();
+
+    // Verify that personal info was updated but the rest of the user data
+    // was left unchanged (password and permissions)
+    mappedUpdateUser.setPasswordHash(user.getPasswordHash());
+    mappedUpdateUser.setPermissions(user.getPermissions());
+
+    assertThat(savedUser).isEqualTo(mappedUpdateUser);
+    verify(passwordEncoder, never()).encode(anyString());
+  }
+
+  @Test
+  @WithMockUser(username = USERNAME, roles = {"READ"})
+  void updateUserProfile_shouldUpdatePassword_whenPasswordIsProvided() {
+    // Arrange
+    UserRegisterInfo updateInfo = new UserRegisterInfo();
+    updateInfo.setPassword("newPassword456");
+
+    when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(user));
+    // The mapper is not called for password-only updates
+    when(passwordEncoder.encode("newPassword456")).thenReturn("newEncodedPassword");
+
+    // Act
+    userService.updateUserProfile(USERNAME, updateInfo);
+
+    // Assert
+    ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+    verify(userRepository).save(userCaptor.capture());
+    User savedUser = userCaptor.getValue();
+
+    // Verify that password was updated but personal info was NOT
+    assertThat(savedUser.getPasswordHash()).isEqualTo("newEncodedPassword");
+    assertThat(savedUser.getUsername()).isEqualTo(USERNAME); // Unchanged
+  }
+
+  @Test
+  @WithMockUser(username = USERNAME, roles = {"ADMIN"})
+  void updateUserProfile_shouldThrowUserAlreadyExistsException_whenNewUsernameIsTaken() {
+    // Arrange
+    UserRegisterInfo updateInfo = new UserRegisterInfo();
+    BasicUserInfo newBasicInfo = new BasicUserInfo();
+    newBasicInfo.setUsername("ExistingUser");
+    updateInfo.setBasicInfo(newBasicInfo);
+
+    User mappedUpdateUser = new User();
+    mappedUpdateUser.setUsername("ExistingUser");
+
+    when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(user));
+    when(userMapper.userRegisterInfoToUser(updateInfo)).thenReturn(mappedUpdateUser);
+    // Simulate that the desired new username is already taken
+    when(userRepository.existsByUsername("ExistingUser")).thenReturn(true);
+
+    // Act & Assert
+    assertThrows(UserAlreadyExistsException.class, () -> userService.updateUserProfile(USERNAME, updateInfo));
+
+    // Verify that save was never called
+    verify(userRepository, never()).save(any());
+  }
+
+
+  // Tests for changeUserPermissions
+
+  @Test
+  @WithMockUser(username = USERNAME, roles = {"ADMIN"})
+  void changeUserPermissions_shouldUpdatePermissions_whenUserExists() {
+    // Arrange
+    ChangePermissions newPermissionsDto = new ChangePermissions();
+    newPermissionsDto.setPermissions(ChangePermissions.PermissionsEnum.ADMIN);
+
+    when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(user));
+
+    // Act
+    userService.changeUserPermissions(USERNAME, newPermissionsDto);
+
+    // Assert
+    ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+    verify(userRepository).save(userCaptor.capture());
+    User savedUser = userCaptor.getValue();
+
+    // The original user had 'READ' permissions. Verify it changed to 'ADMIN'.
+    assertThat(savedUser.getPermissions()).isEqualTo(UserInfo.PermissionsEnum.ADMIN);
+  }
+
+  @Test
+  @WithMockUser(username = USERNAME, roles = {"ADMIN"})
+  void changeUserPermissions_shouldThrowResourceNotFoundException_whenUserDoesNotExist() {
+    // Arrange
+    ChangePermissions newPermissionsDto = new ChangePermissions();
+    newPermissionsDto.setPermissions(ChangePermissions.PermissionsEnum.ADMIN);
+    when(userRepository.findByUsername(UNK_USERNAME)).thenReturn(Optional.empty());
+
+    // Act & Assert
+    assertThrows(ResourceNotFoundException.class, () -> userService.changeUserPermissions(UNK_USERNAME, newPermissionsDto));
+
+    // Verify that save was never called
+    verify(userRepository, never()).save(any());
   }
 }

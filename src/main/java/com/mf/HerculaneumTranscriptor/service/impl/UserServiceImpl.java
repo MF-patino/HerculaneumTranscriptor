@@ -29,9 +29,8 @@ public class UserServiceImpl implements UserService {
   @Override
   public AuthenticationResponse registerNewUser(UserRegisterInfo registrationInfo) throws UserAlreadyExistsException {
     // Check if username is already taken
-    if (userRepository.existsByUsername(registrationInfo.getBasicInfo().getUsername())) {
+    if (userRepository.existsByUsername(registrationInfo.getBasicInfo().getUsername()))
       throw new UserAlreadyExistsException("Username is already taken: " + registrationInfo.getBasicInfo().getUsername());
-    }
 
     User user = userMapper.userRegisterInfoToUser(registrationInfo);
     user.setPasswordHash(passwordEncoder.encode(registrationInfo.getPassword()));
@@ -66,16 +65,47 @@ public class UserServiceImpl implements UserService {
 
   @Override
   public void deleteUserByUsername(String username) throws ResourceNotFoundException {
+    User user = userRepository.findByUsername(username)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
 
+    userRepository.delete(user);
   }
 
   @Override
-  public void updateUserProfile(String username, UserRegisterInfo updateInfo) throws ResourceNotFoundException {
+  public void updateUserProfile(String username, UserRegisterInfo updateInfo) throws ResourceNotFoundException, UserAlreadyExistsException {
+    User originalUser = userRepository.findByUsername(username)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
 
+    if (updateInfo.getPassword() != null) // change of password
+      originalUser.setPasswordHash(passwordEncoder.encode(updateInfo.getPassword()));
+    else { // change of personal information
+      User user = userMapper.userRegisterInfoToUser(updateInfo);
+
+      // Check if desired new username is already taken
+      if (userRepository.existsByUsername(updateInfo.getBasicInfo().getUsername()))
+        throw new UserAlreadyExistsException("Username is already taken: " + updateInfo.getBasicInfo().getUsername());
+
+      originalUser.setUsername(user.getUsername());
+      originalUser.setFirstName(user.getFirstName());
+      originalUser.setLastName(user.getLastName());
+      originalUser.setContact(user.getContact());
+    }
+
+    // Update user entry
+    userRepository.save(originalUser);
   }
 
   @Override
   public void changeUserPermissions(String username, ChangePermissions newPermissions) {
+    User user = userRepository.findByUsername(username)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
 
+    // We perform a "cast" from the more limited ChangePermissions.PermissionsEnum to
+    // the broader UserInfo.PermissionsEnum enum
+    String newPermissionName = newPermissions.getPermissions().name();
+    user.setPermissions(UserInfo.PermissionsEnum.valueOf(newPermissionName));
+
+    // Update user entry
+    userRepository.save(user);
   }
 }

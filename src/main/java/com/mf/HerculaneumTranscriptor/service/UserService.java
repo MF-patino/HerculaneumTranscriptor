@@ -62,9 +62,10 @@ public interface UserService {
    * @param username The username of the user to update.
    * @param updateInfo DTO with the new profile information.
    * @throws com.mf.HerculaneumTranscriptor.exception.ResourceNotFoundException if no user is found.
+   * @throws com.mf.HerculaneumTranscriptor.exception.UserAlreadyExistsException if desired new username is taken.
    */
-  @PreAuthorize("hasRole('ROOT') or @securityLogic.hasAuthorityOver(authentication, #username")
-  void updateUserProfile(String username, UserRegisterInfo updateInfo) throws ResourceNotFoundException;
+  @PreAuthorize("hasRole('ROOT') or @securityLogic.hasAuthorityOver(authentication, #username)")
+  void updateUserProfile(String username, UserRegisterInfo updateInfo) throws ResourceNotFoundException, UserAlreadyExistsException;
 
   /**
    * Changes the permission level for a given user.
@@ -75,5 +76,5 @@ public interface UserService {
    * @throws com.mf.HerculaneumTranscriptor.exception.ResourceNotFoundException if no user is found.
    */
   @PreAuthorize("(hasRole('ROOT') or hasRole('ADMIN')) and @securityLogic.hasAuthorityOver(authentication, #username)")
-  void changeUserPermissions(String username, ChangePermissions newPermissions);
+  void changeUserPermissions(String username, ChangePermissions newPermissions) throws ResourceNotFoundException;
 }
