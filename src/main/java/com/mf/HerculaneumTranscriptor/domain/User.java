@@ -7,6 +7,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import user.dto.UserInfo;
 
+import java.util.Objects;
+
 @Entity @Table(name="USERS")
 @Getter @Setter @AllArgsConstructor @NoArgsConstructor
 public class User {
@@ -20,4 +22,16 @@ public class User {
   private String contact;
   private String passwordHash;
   private UserInfo.PermissionsEnum permissions;
+
+  @Override
+  public boolean equals(Object o) {
+    if (o == null || getClass() != o.getClass()) return false;
+    User user = (User) o;
+    return Objects.equals(username, user.username) && Objects.equals(firstName, user.firstName) && Objects.equals(lastName, user.lastName) && Objects.equals(contact, user.contact) && Objects.equals(passwordHash, user.passwordHash) && permissions == user.permissions;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(username, firstName, lastName, contact, passwordHash, permissions);
+  }
 }

@@ -26,7 +26,9 @@ public class UserController implements UserApi {
 
   @Override
   public ResponseEntity<Void> deleteUser(String username) {
-    return null;
+    userService.deleteUserByUsername(username);
+
+    return ResponseEntity.ok().build();
   }
 
   @Override
@@ -47,11 +49,15 @@ public class UserController implements UserApi {
 
   @Override
   public ResponseEntity<Void> updateUser(String username, UserRegisterInfo userRegisterInfo) {
-    return null;
+    userService.updateUserProfile(username, userRegisterInfo);
+
+    return ResponseEntity.ok().build();
   }
 
   @Override
   public ResponseEntity<Void> updateUserPermissions(String username, ChangePermissions changePermissions) {
-    return null;
+    userService.changeUserPermissions(username, changePermissions);
+
+    return ResponseEntity.ok().build();
   }
 }
