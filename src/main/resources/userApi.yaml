@@ -148,7 +148,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UserRegisterInfo'
+              $ref: '#/components/schemas/ChangeUserInfo'
       responses:
         '200':
           description: Successful operation
@@ -208,24 +208,48 @@ components:
       scheme: bearer
       bearerFormat: JWT
 
+  x-validation-vars:
+    passwordMinLength: &passwordMinLength 3
+    entryMinLength: &entryMinLength 1
+    entryMaxLength: &entryMaxLength 50
+
   schemas:
     BasicUserInfo:
+      required:
+        - username
+        - firstName
+        - lastName
+        - contact
+
       type: object
       properties:
         username:
           type: string
           example: JohnDoe
+          minLength: *entryMinLength
+          maxLength: *entryMaxLength
         firstName:
           type: string
           example: John
+          minLength: *entryMinLength
+          maxLength: *entryMaxLength
         lastName:
           type: string
           example: Doe
+          minLength: *entryMinLength
+          maxLength: *entryMaxLength
         contact:
           type: string
+          format: email
           example: johndoe@email.com
+          minLength: *entryMinLength
+          maxLength: *entryMaxLength
 
     UserInfo:
+      required:
+        - basic_info
+        - permissions
+
       type: object
       properties:
         basic_info:
@@ -246,6 +270,9 @@ components:
           example: read
 
     ChangePermissions:
+      required:
+        - permissions
+
       type: object
       properties:
         permissions:
@@ -257,21 +284,44 @@ components:
             - read
           example: read
 
+    Password:
+      type: string
+      example: '12345'
+      minLength: *passwordMinLength
+      maxLength: *entryMaxLength
+
     UserLoginInfo:
+      required:
+        - user_name
+        - password
+
       type: object
       properties:
         user_name:
           type: string
           example: 'JohnDoe'
+          minLength: *entryMinLength
+          maxLength: *entryMaxLength
         password:
-          type: string
-          example: '12345'
+          $ref: "#/components/schemas/Password"
 
     UserRegisterInfo:
+      required:
+        - basic_info
+        - password
+
       type: object
       properties:
         basic_info:
           $ref: "#/components/schemas/BasicUserInfo"
         password:
-          type: string
-          example: '12345'
+          $ref: "#/components/schemas/Password"
+
+    # Identical to UserRegisterInfo but more flexible, as any field can be omitted
+    ChangeUserInfo:
+      type: object
+      properties:
+        basic_info:
+          $ref: "#/components/schemas/BasicUserInfo"
+        password:
+          $ref: "#/components/schemas/Password"

@@ -229,16 +229,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - vote
-              properties:
-                vote:
-                  type: integer
-                  format: int32
-                  description: A certainty score from 0 (completely uncertain) to 5 (absolutely certain).
-                  minimum: 0
-                  maximum: 5
+              $ref: '#/components/schemas/Vote'
       responses:
         '200':
           description: Vote cast successfully. Returns the updated region.
@@ -269,18 +260,34 @@ components:
       bearerFormat: JWT
 
   schemas:
+    Vote:
+      type: object
+      required:
+        - vote
+      properties:
+        vote:
+          type: integer
+          format: int32
+          description: A certainty score from 0 (completely uncertain) to 5 (absolutely certain).
+          minimum: 0
+          maximum: 5
+
     Coordinates:
       type: object
       description: Defines the position and size of a 2D box.
       properties:
         x:
           type: number
+          format: float
         y:
           type: number
+          format: float
         width:
           type: number
+          format: float
         height:
           type: number
+          format: float
       required:
         - x
         - y
@@ -297,6 +304,8 @@ components:
           type: string
           description: The transcribed Greek text within the box.
           example: 'πορφυρας'
+          minLength: 1
+          maxLength: 2048
       required:
         - coordinates
         - transcription
@@ -333,8 +342,7 @@ components:
         - authorUsername
         - createdAt
         - updatedAt
-        - coordinates
-        - transcription
+        - basic_info
 
     RegionUpdateResponse:
       type: object
@@ -348,3 +356,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/BoxRegion'
+      required:
+        - lastSyncTimestamp
+        - regions
