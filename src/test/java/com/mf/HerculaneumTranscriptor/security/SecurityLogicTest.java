@@ -87,6 +87,7 @@ class SecurityLogicTest {
   void hasAuthorityOver_shouldReturnTrue_whenUserActsOnThemselves() {
     // Arrange
     Authentication userAuth = mockAuthentication("user", "ROLE_READ");
+    when(userRepository.findByUsername("user")).thenReturn(Optional.of(regularUser));
 
     // Act
     boolean result = securityLogic.hasAuthorityOver(userAuth, "user");
@@ -96,12 +97,26 @@ class SecurityLogicTest {
   }
 
   @Test
-  void hasAuthorityOver_shouldReturnFalse_whenUserActsOnOtherUser() {
+  void hasAuthorityOver_shouldReturnFalse_whenUserActsOnNonExistingUser() {
     // Arrange
-    Authentication userAuth = mockAuthentication("user", "ROLE_READ");
+    Authentication userAuth = mockAuthentication(null, "ROLE_READ");
+    when(userRepository.findByUsername("otherUser")).thenReturn(Optional.empty());
 
     // Act
     boolean result = securityLogic.hasAuthorityOver(userAuth, "otherUser");
+
+    // Assert
+    assertThat(result).isTrue();
+  }
+
+  @Test
+  void hasAuthorityOver_shouldReturnFalse_whenUserActsOnExistingUser() {
+    // Arrange
+    Authentication userAuth = mockAuthentication("otherUser", "ROLE_READ");
+    when(userRepository.findByUsername("user")).thenReturn(Optional.of(regularUser));
+
+    // Act
+    boolean result = securityLogic.hasAuthorityOver(userAuth, "user");
 
     // Assert
     assertThat(result).isFalse();
