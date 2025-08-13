@@ -127,7 +127,6 @@
 								<hideGenerationTimestamp>true</hideGenerationTimestamp>
 								<dateLibrary>java21</dateLibrary>
 								<bigDecimalAsString>true</bigDecimalAsString>
-								<useBeanValidation>true</useBeanValidation>
 								<apiPackage>user.api</apiPackage>
 								<modelPackage>user.dto</modelPackage>
 							</configOptions>
@@ -165,7 +164,6 @@
 								<hideGenerationTimestamp>true</hideGenerationTimestamp>
 								<dateLibrary>java21</dateLibrary>
 								<bigDecimalAsString>true</bigDecimalAsString>
-								<useBeanValidation>true</useBeanValidation>
 								<apiPackage>annotation.api</apiPackage>
 								<modelPackage>annotation.dto</modelPackage>
 							</configOptions>
@@ -203,9 +201,44 @@
 								<hideGenerationTimestamp>true</hideGenerationTimestamp>
 								<dateLibrary>java21</dateLibrary>
 								<bigDecimalAsString>true</bigDecimalAsString>
+								<apiPackage>comment.api</apiPackage>
+								<modelPackage>comment.dto</modelPackage>
+							</configOptions>
+							<typeMappings>
+								<typeMapping>OffsetDateTime=LocalDateTime</typeMapping>
+							</typeMappings>
+							<importMappings>
+								<importMapping>java.time.OffsetDateTime=java.time.LocalDateTime</importMapping>
+							</importMappings>
+						</configuration>
+					</execution>
+
+					<execution>
+						<id>generate-scroll-api-code</id>
+						<goals>
+							<goal>generate</goal>
+						</goals>
+						<configuration>
+							<inputSpec>${project.basedir}/src/main/resources/scrollApi.yaml</inputSpec>
+							<generateSupportingFiles>false</generateSupportingFiles>
+							<generatorName>spring</generatorName>
+							<strictSpec>true</strictSpec>
+							<generateApiTests>false</generateApiTests>
+							<generateModelTests>false</generateModelTests>
+							<configOptions>
+								<controllerThrowsExceptions>java.io.IOException,com.example.NotFoundException</controllerThrowsExceptions>
+								<interfaceOnly>true</interfaceOnly>
+								<skipDefaultInterface>true</skipDefaultInterface>
 								<useBeanValidation>true</useBeanValidation>
-								<apiPackage>annotation.api</apiPackage>
-								<modelPackage>annotation.dto</modelPackage>
+								<useClassLevelBeanValidation>false</useClassLevelBeanValidation>
+								<useTags>true</useTags>
+								<java21>true</java21>
+								<useOptional>false</useOptional>
+								<hideGenerationTimestamp>true</hideGenerationTimestamp>
+								<dateLibrary>java21</dateLibrary>
+								<bigDecimalAsString>true</bigDecimalAsString>
+								<apiPackage>scroll.api</apiPackage>
+								<modelPackage>scroll.dto</modelPackage>
 							</configOptions>
 							<typeMappings>
 								<typeMapping>OffsetDateTime=LocalDateTime</typeMapping>

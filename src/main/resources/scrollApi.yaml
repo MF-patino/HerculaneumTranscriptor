@@ -1,0 +1,233 @@
+openapi: 3.0.3
+info:
+  title: Scroll management API
+  description: |-
+    This API specifies operations for managing the inventory of virtually unwrapped scroll ink predictions.
+    It allows any authenticated user to view the list of available scrolls,
+    while restricting creation and deletion to users with administration privileges.
+  version: 1.0.0
+servers:
+  - url: https://localhost:8080/
+tags:
+  - name: scrolls
+    description: Operations to manage the list of available scrolls.
+
+paths:
+  /scrolls:
+    get:
+      tags:
+        - scrolls
+      summary: Get all available scrolls
+      description: |
+        Retrieves a list of all scrolls currently available for annotation in the system.
+        This is intended to be called by the client on startup to populate its list of scrolls.
+      operationId: getAllScrolls
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: A list of all available scrolls.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Scroll'
+        '401':
+          $ref: 'userApi.yaml#/components/responses/UnauthorizedError'
+
+    post:
+      tags:
+        - scrolls
+      summary: Add a new scroll to the system
+      description: |
+        Adds a new scroll to the inventory. This operation is restricted to users with `admin` or `root` permissions.
+      operationId: createScroll
+      security:
+        - bearerAuth: []
+      requestBody:
+        description: The details of the new scroll to be added.
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - metadata
+                - ink_image
+              properties:
+                metadata:
+                  $ref: '#/components/schemas/NewScroll'
+                ink_image:
+                  type: string
+                  format: binary
+                  description: The ink prediction image file in PNG format.
+            # Encoding for each part
+            encoding:
+              metadata:
+                contentType: application/json
+              ink_image:
+                contentType: image/png
+      responses:
+        '201':
+          description: Scroll created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Scroll'
+        '400':
+          description: Invalid scroll data provided.
+          content:
+            application/json:
+              schema:
+                $ref: 'userApi.yaml#/components/responses/Error'
+        '401':
+          $ref: 'userApi.yaml#/components/responses/UnauthorizedError'
+        '403':
+          description: User is not authorized to create scrolls.
+          content:
+            application/json:
+              schema:
+                $ref: 'userApi.yaml#/components/responses/Error'
+        '409':
+          description: A scroll with this ID already exists.
+          content:
+            application/json:
+              schema:
+                $ref: 'userApi.yaml#/components/responses/Error'
+
+  /scrolls/{scrollId}:
+    get:
+      tags:
+        - scrolls
+      summary: Get a scroll's ink prediction image
+      description: |
+        Retrieves the ink prediction image for a specific scroll.
+        Any authenticated user can download the image.
+      operationId: getScrollImage
+      security:
+        - bearerAuth: [ ]
+      parameters:
+        - name: scrollId
+          in: path
+          description: The unique identifier of the scroll.
+          required: true
+          schema:
+            type: string
+            example: 'vesuvius-scroll-1'
+      responses:
+        '200':
+          description: The scroll's ink prediction image.
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+        '401':
+          $ref: 'userApi.yaml#/components/responses/UnauthorizedError'
+        '404':
+          description: Scroll or its image not found.
+          content:
+            application/json:
+              schema:
+                $ref: 'userApi.yaml#/components/responses/Error'
+
+    delete:
+      tags:
+        - scrolls
+      summary: Delete a scroll
+      description: |
+        Deletes a scroll from the system, along with all its associated regions and annotations.
+        This is a destructive operation and is restricted to users with `admin` or `root` permissions.
+      operationId: deleteScroll
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: scrollId
+          in: path
+          description: The unique identifier of the scroll to be deleted.
+          required: true
+          schema:
+            type: string
+            example: 'vesuvius-scroll-1'
+      responses:
+        '204':
+          description: Deletion successful.
+        '401':
+          $ref: 'userApi.yaml#/components/responses/UnauthorizedError'
+        '403':
+          description: User is not authorized to delete scrolls.
+          content:
+            application/json:
+              schema:
+                $ref: 'userApi.yaml#/components/responses/Error'
+        '404':
+          description: Scroll not found.
+          content:
+            application/json:
+              schema:
+                $ref: 'userApi.yaml#/components/responses/Error'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    NewScroll:
+      type: object
+      description: Metadata required to create a new scroll.
+      required:
+        - scrollId
+        - displayName
+      properties:
+        scrollId:
+          type: string
+          description: A unique, human-readable identifier for the scroll (e.g., 'vesuvius-scroll-1').
+          example: 'vesuvius-scroll-1'
+          pattern: '^[a-zA-Z0-9-]+$'
+          minLength: 3
+          maxLength: 50
+        displayName:
+          type: string
+          description: The user-friendly name of the scroll to be displayed in the UI.
+          example: 'Vesuvius Challenge Scroll 1'
+          minLength: 3
+          maxLength: 100
+        description:
+          type: string
+          description: A brief description or context for the scroll.
+          maxLength: 1024
+        thumbnailUrl:
+          type: string
+          format: uri
+          description: A URL to a thumbnail image of the scroll.
+
+    Scroll:
+      type: object
+      description: The metadata representation of a scroll in the system.
+      properties:
+        scrollId:
+          type: string
+          readOnly: true
+        displayName:
+          type: string
+          readOnly: true
+        description:
+          type: string
+          readOnly: true
+        thumbnailUrl:
+          type: string
+          format: uri
+          readOnly: true
+        createdAt:
+          type: string
+          format: date-time
+          description: The timestamp when the scroll was added to the system.
+          readOnly: true
+      required:
+        - scrollId
+        - displayName
+        - createdAt
