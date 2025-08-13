@@ -30,16 +30,15 @@ public class SecurityLogic {
     boolean isAdminRoot = authentication.getAuthorities().stream()
             .anyMatch(a -> a.getAuthority().matches("ROLE_ROOT|ROLE_ADMIN"));
 
+    User targetUser = userRepository.findByUsername(targetUsername).orElse(null);
+
+    // If the target user does not exist, the user has authority over it (e.g. they can change
+    // their own username to the nonexistent target user's).
+    if (targetUser == null)
+      return true;
+
     // Admins and root user can operate on a user, but we must first check if the target is the root user.
     if (isAdminRoot) {
-      User targetUser = userRepository.findByUsername(targetUsername).orElse(null);
-
-      // If the target doesn't exist, let the service method handle the ResourceNotFoundException.
-      // This will inform the frontend that the user doesn't exist.
-      if (targetUser == null) {
-        return true;
-      }
-
       // Allow if the target is NOT root.
       return targetUser.getPermissions() != UserInfo.PermissionsEnum.ROOT;
     } else return authentication.getName().equals(targetUsername); // A user can operate on themselves.
