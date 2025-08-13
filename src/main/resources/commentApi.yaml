@@ -100,13 +100,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - text
-              properties:
-                text:
-                  type: string
-                  example: "I am almost certain this is a 'Π' (Pi)."
+              $ref: '#/components/schemas/CommentContent'
       responses:
         '201':
           description: Comment created successfully.
@@ -183,8 +177,24 @@ components:
       bearerFormat: JWT
 
   schemas:
+    CommentContent:
+      type: object
+      required:
+        - text
+      properties:
+        text:
+          type: string
+          example: "I am almost certain this is a 'Π' (Pi)."
+          minLength: 10
+          maxLength: 1024
     Comment:
       type: object
+      required:
+        - commentId
+        - authorUsername
+        - text
+        - createdAt
+
       properties:
         commentId:
           type: string
