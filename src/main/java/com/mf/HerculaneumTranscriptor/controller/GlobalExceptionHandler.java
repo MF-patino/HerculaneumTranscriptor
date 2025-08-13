@@ -5,10 +5,13 @@ import com.mf.HerculaneumTranscriptor.exception.UserAlreadyExistsException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authorization.AuthorizationDeniedException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
 
+import javax.validation.ValidationException;
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -43,5 +46,23 @@ public class GlobalExceptionHandler {
   public ResponseEntity<Object> handleBadCredentials(BadCredentialsException ex, WebRequest request) {
 
     return buildResponseBody(HttpStatus.FORBIDDEN, "Bad credentials", ex.getMessage());
+  }
+
+  @ExceptionHandler(AuthorizationDeniedException.class)
+  public ResponseEntity<Object> handleAuthorizationDenied(AuthorizationDeniedException ex, WebRequest request) {
+
+    return buildResponseBody(HttpStatus.FORBIDDEN, "Authorization denied", "Access has been denied");
+  }
+
+  @ExceptionHandler(MethodArgumentNotValidException.class)
+  public ResponseEntity<Object> handleValidationError(MethodArgumentNotValidException ex, WebRequest request) {
+
+    return buildResponseBody(HttpStatus.BAD_REQUEST, "Validation error", ex.getMessage());
+  }
+
+  @ExceptionHandler(ValidationException.class)
+  public ResponseEntity<Object> handleValidationException(ValidationException ex, WebRequest request) {
+
+    return buildResponseBody(HttpStatus.BAD_REQUEST, "Validation error", ex.getMessage());
   }
 }

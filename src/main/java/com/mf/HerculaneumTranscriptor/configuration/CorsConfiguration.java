@@ -15,6 +15,7 @@ public class CorsConfiguration {
       public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**") // Apply to all endpoints
                 .allowedOrigins("*") // Allow requests from any origin (JWT security prevents CSRF)
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .exposedHeaders("Authorization");
       }
     };

@@ -123,6 +123,10 @@
 		</dependency>
 
 		<!-- Dependencies for Spring Boot -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-validation</artifactId>
+		</dependency>
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -204,6 +208,7 @@
 								<bigDecimalAsString>true</bigDecimalAsString>
 								<apiPackage>user.api</apiPackage>
 								<modelPackage>user.dto</modelPackage>
+								<useJakartaEe>true</useJakartaEe>
 							</configOptions>
 							<typeMappings>
 								<typeMapping>OffsetDateTime=LocalDateTime</typeMapping>
@@ -241,6 +246,7 @@
 								<bigDecimalAsString>true</bigDecimalAsString>
 								<apiPackage>annotation.api</apiPackage>
 								<modelPackage>annotation.dto</modelPackage>
+								<useJakartaEe>true</useJakartaEe>
 							</configOptions>
 							<typeMappings>
 								<typeMapping>OffsetDateTime=LocalDateTime</typeMapping>
@@ -314,6 +320,7 @@
 								<bigDecimalAsString>true</bigDecimalAsString>
 								<apiPackage>scroll.api</apiPackage>
 								<modelPackage>scroll.dto</modelPackage>
+								<useJakartaEe>true</useJakartaEe>
 							</configOptions>
 							<typeMappings>
 								<typeMapping>OffsetDateTime=LocalDateTime</typeMapping>
