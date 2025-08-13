@@ -13,10 +13,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import user.dto.ChangePermissions;
-import user.dto.UserInfo;
-import user.dto.UserLoginInfo;
-import user.dto.UserRegisterInfo;
+import user.dto.*;
 
 @Service
 @AllArgsConstructor
@@ -72,23 +69,22 @@ public class UserServiceImpl implements UserService {
   }
 
   @Override
-  public void updateUserProfile(String username, UserRegisterInfo updateInfo) throws ResourceNotFoundException, UserAlreadyExistsException {
+  public void updateUserProfile(String username, ChangeUserInfo updateInfo) throws ResourceNotFoundException, UserAlreadyExistsException {
     User originalUser = userRepository.findByUsername(username)
             .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
 
     if (updateInfo.getPassword() != null) // change of password
       originalUser.setPasswordHash(passwordEncoder.encode(updateInfo.getPassword()));
     else { // change of personal information
-      User user = userMapper.userRegisterInfoToUser(updateInfo);
-
       // Check if desired new username is already taken
-      if (userRepository.existsByUsername(updateInfo.getBasicInfo().getUsername()))
-        throw new UserAlreadyExistsException("Username is already taken: " + updateInfo.getBasicInfo().getUsername());
+      String requestedUsername = updateInfo.getBasicInfo().getUsername();
+      if (!username.equals(requestedUsername) && userRepository.existsByUsername(requestedUsername))
+        throw new UserAlreadyExistsException("New username is already taken: " + requestedUsername);
 
-      originalUser.setUsername(user.getUsername());
-      originalUser.setFirstName(user.getFirstName());
-      originalUser.setLastName(user.getLastName());
-      originalUser.setContact(user.getContact());
+      originalUser.setUsername(updateInfo.getBasicInfo().getUsername());
+      originalUser.setFirstName(updateInfo.getBasicInfo().getFirstName());
+      originalUser.setLastName(updateInfo.getBasicInfo().getLastName());
+      originalUser.setContact(updateInfo.getBasicInfo().getContact());
     }
 
     // Update user entry

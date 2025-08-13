@@ -5,10 +5,7 @@ import com.mf.HerculaneumTranscriptor.exception.ResourceNotFoundException;
 import com.mf.HerculaneumTranscriptor.exception.UserAlreadyExistsException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.AuthenticationException;
-import user.dto.ChangePermissions;
-import user.dto.UserInfo;
-import user.dto.UserLoginInfo;
-import user.dto.UserRegisterInfo;
+import user.dto.*;
 
 /**
  * Service layer defining business operations related to Users.
@@ -65,7 +62,7 @@ public interface UserService {
    * @throws com.mf.HerculaneumTranscriptor.exception.UserAlreadyExistsException if desired new username is taken.
    */
   @PreAuthorize("hasRole('ROOT') or @securityLogic.hasAuthorityOver(authentication, #username)")
-  void updateUserProfile(String username, UserRegisterInfo updateInfo) throws ResourceNotFoundException, UserAlreadyExistsException;
+  void updateUserProfile(String username, ChangeUserInfo updateInfo) throws ResourceNotFoundException, UserAlreadyExistsException;
 
   /**
    * Changes the permission level for a given user.

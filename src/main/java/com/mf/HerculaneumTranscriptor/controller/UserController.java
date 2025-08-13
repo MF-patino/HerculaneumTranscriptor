@@ -9,6 +9,8 @@ import user.dto.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.validation.ValidationException;
+
 @RestController
 @AllArgsConstructor
 public class UserController implements UserApi {
@@ -48,8 +50,12 @@ public class UserController implements UserApi {
   }
 
   @Override
-  public ResponseEntity<Void> updateUser(String username, UserRegisterInfo userRegisterInfo) {
-    userService.updateUserProfile(username, userRegisterInfo);
+  public ResponseEntity<Void> updateUser(String username, ChangeUserInfo changeUserInfo) {
+    if ((changeUserInfo.getBasicInfo() == null && changeUserInfo.getPassword() == null) ||
+            (changeUserInfo.getBasicInfo() != null && changeUserInfo.getPassword() != null))
+      throw new ValidationException("Malformed input: either a user data or password field must be provided");
+
+    userService.updateUserProfile(username, changeUserInfo);
 
     return ResponseEntity.ok().build();
   }

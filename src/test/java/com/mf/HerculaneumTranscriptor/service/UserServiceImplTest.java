@@ -236,7 +236,7 @@ public class UserServiceImplTest {
   void updateUserProfile_shouldUpdateInfo_whenPasswordIsNull() {
     // Arrange
     // Password is null in this DTO, and all personal information is different
-    UserRegisterInfo updateInfo = new UserRegisterInfo();
+    ChangeUserInfo updateInfo = new ChangeUserInfo();
     BasicUserInfo newBasicInfo = new BasicUserInfo();
     newBasicInfo.setUsername("NewJohnDoe");
     newBasicInfo.setFirstName("Jonathan");
@@ -245,13 +245,12 @@ public class UserServiceImplTest {
     updateInfo.setBasicInfo(newBasicInfo);
 
     User mappedUpdateUser = new User();
-    mappedUpdateUser.setUsername("NewJohnDoe");
-    mappedUpdateUser.setFirstName("Jonathan");
-    mappedUpdateUser.setLastName("Doer");
-    mappedUpdateUser.setContact("jonathan.doer@example.com");
+    mappedUpdateUser.setUsername(newBasicInfo.getUsername());
+    mappedUpdateUser.setFirstName(newBasicInfo.getFirstName());
+    mappedUpdateUser.setLastName(newBasicInfo.getLastName());
+    mappedUpdateUser.setContact(newBasicInfo.getContact());
 
     when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(user));
-    when(userMapper.userRegisterInfoToUser(updateInfo)).thenReturn(mappedUpdateUser);
     when(userRepository.existsByUsername("NewJohnDoe")).thenReturn(false);
 
     // Act
@@ -276,7 +275,7 @@ public class UserServiceImplTest {
   @WithMockUser(username = USERNAME, roles = {"READ"})
   void updateUserProfile_shouldUpdatePassword_whenPasswordIsProvided() {
     // Arrange
-    UserRegisterInfo updateInfo = new UserRegisterInfo();
+    ChangeUserInfo updateInfo = new ChangeUserInfo();
     updateInfo.setPassword("newPassword456");
 
     when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(user));
@@ -300,16 +299,12 @@ public class UserServiceImplTest {
   @WithMockUser(username = USERNAME, roles = {"ADMIN"})
   void updateUserProfile_shouldThrowUserAlreadyExistsException_whenNewUsernameIsTaken() {
     // Arrange
-    UserRegisterInfo updateInfo = new UserRegisterInfo();
+    ChangeUserInfo updateInfo = new ChangeUserInfo();
     BasicUserInfo newBasicInfo = new BasicUserInfo();
     newBasicInfo.setUsername("ExistingUser");
     updateInfo.setBasicInfo(newBasicInfo);
 
-    User mappedUpdateUser = new User();
-    mappedUpdateUser.setUsername("ExistingUser");
-
     when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(user));
-    when(userMapper.userRegisterInfoToUser(updateInfo)).thenReturn(mappedUpdateUser);
     // Simulate that the desired new username is already taken
     when(userRepository.existsByUsername("ExistingUser")).thenReturn(true);
 
