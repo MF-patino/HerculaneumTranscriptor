@@ -251,6 +251,7 @@ public class UserServiceImplTest {
     mappedUpdateUser.setContact(newBasicInfo.getContact());
 
     when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(user));
+    when(userMapper.userRegisterInfoToUser(updateInfo)).thenReturn(mappedUpdateUser);
     when(userRepository.existsByUsername("NewJohnDoe")).thenReturn(false);
 
     // Act
