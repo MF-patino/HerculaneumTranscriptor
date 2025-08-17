@@ -1,9 +1,9 @@
 package com.mf.HerculaneumTranscriptor.security;
 
+import com.mf.HerculaneumTranscriptor.domain.User;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-import user.dto.UserInfo;
 
 import java.util.Collection;
 import java.util.List;
@@ -12,9 +12,9 @@ public class JwtUserDetails implements UserDetails {
   private final String username;
   private final List<GrantedAuthority> authorities;
 
-  public JwtUserDetails(UserInfo userInfo) {
-    this.username = userInfo.getBasicInfo().getUsername();
-    this.authorities = List.of(new SimpleGrantedAuthority("ROLE_" + userInfo.getPermissions().getValue()));
+  public JwtUserDetails(User user) {
+    this.username = user.getUsername();
+    this.authorities = List.of(new SimpleGrantedAuthority("ROLE_" + user.getPermissions().getValue()));
   }
 
   @Override

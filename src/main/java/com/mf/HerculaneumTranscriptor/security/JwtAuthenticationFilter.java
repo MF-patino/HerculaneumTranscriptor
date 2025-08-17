@@ -1,6 +1,8 @@
 package com.mf.HerculaneumTranscriptor.security;
 
-import com.mf.HerculaneumTranscriptor.service.UserService;
+import com.mf.HerculaneumTranscriptor.domain.User;
+import com.mf.HerculaneumTranscriptor.exception.ResourceNotFoundException;
+import com.mf.HerculaneumTranscriptor.repository.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -21,7 +23,7 @@ import java.io.IOException;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
   private final JwtUtil jwtUtil;
-  private final UserService userService;
+  private final UserRepository userRepository;
 
 
   /**
@@ -44,7 +46,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     if (token != null && jwtUtil.validateToken(token)) {
       // The JWT is valid, we can build an authentication object from it
       String subject = jwtUtil.extractSubject(token);
-      UserDetails userDetails = new JwtUserDetails(userService.findUserByUsername(subject));
+
+      User user = userRepository.findByUsername(subject)
+              .orElseThrow(() -> new ResourceNotFoundException("User not found: " + subject));
+      UserDetails userDetails = new JwtUserDetails(user);
 
       WebAuthenticationDetails authDetails = new WebAuthenticationDetailsSource().buildDetails(request);
       Authentication authentication = new JwtAuthentication(userDetails, token, authDetails);
