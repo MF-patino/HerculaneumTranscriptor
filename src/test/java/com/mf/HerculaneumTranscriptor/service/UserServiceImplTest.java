@@ -251,7 +251,6 @@ public class UserServiceImplTest {
     mappedUpdateUser.setContact(newBasicInfo.getContact());
 
     when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(user));
-    when(userMapper.userRegisterInfoToUser(updateInfo)).thenReturn(mappedUpdateUser);
     when(userRepository.existsByUsername("NewJohnDoe")).thenReturn(false);
 
     // Act
@@ -280,7 +279,6 @@ public class UserServiceImplTest {
     updateInfo.setPassword("newPassword456");
 
     when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(user));
-    // The mapper is not called for password-only updates
     when(passwordEncoder.encode("newPassword456")).thenReturn("newEncodedPassword");
 
     // Act

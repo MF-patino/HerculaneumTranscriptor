@@ -2,7 +2,11 @@ package com.mf.HerculaneumTranscriptor.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mf.HerculaneumTranscriptor.configuration.SecurityConfiguration;
+import com.mf.HerculaneumTranscriptor.domain.User;
 import com.mf.HerculaneumTranscriptor.dto.AuthenticationResponse;
+import com.mf.HerculaneumTranscriptor.exception.ResourceNotFoundException;
+import com.mf.HerculaneumTranscriptor.exception.UserAlreadyExistsException;
+import com.mf.HerculaneumTranscriptor.repository.UserRepository;
 import com.mf.HerculaneumTranscriptor.security.JwtUtil;
 import com.mf.HerculaneumTranscriptor.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -12,18 +16,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import user.dto.BasicUserInfo;
 import user.dto.UserInfo;
+import user.dto.UserLoginInfo;
 import user.dto.UserRegisterInfo;
 
+import java.util.Optional;
+
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(UserController.class)
 // SecurityConfiguration is needed to test the JWT filters
@@ -38,41 +44,84 @@ public class UserControllerTest {
   // Needed to generate JWT tokens
   private final JwtUtil jwtUtil;
 
-  // Mock of the service layer.
+  // Mock of the service layer and repository.
   @MockitoBean
   private UserService userService;
+  @MockitoBean
+  private UserRepository userRepository;
 
   private AuthenticationResponse authResponse;
+  private User user;
   private UserInfo userInfo;
   private UserRegisterInfo registerInfo;
+  private UserLoginInfo loginInfo;
 
+  private static final String USERNAME = "JohnDoe";
   @BeforeEach
   void setUp() {
     userInfo = new UserInfo();
     BasicUserInfo basicInfo = new BasicUserInfo();
-    basicInfo.setUsername("JohnDoe");
+    basicInfo.setUsername(USERNAME);
     basicInfo.setContact("john.doe@example.com");
     basicInfo.setFirstName("John");
     basicInfo.setLastName("Doe");
     userInfo.setBasicInfo(basicInfo);
     userInfo.setPermissions(UserInfo.PermissionsEnum.READ);
+
     authResponse = new AuthenticationResponse("token", userInfo);
 
     registerInfo = new UserRegisterInfo();
     registerInfo.setBasicInfo(basicInfo);
     registerInfo.setPassword("password");
+
+    user = new User();
+    user.setId(1L);
+    user.setUsername(basicInfo.getUsername());
+    user.setContact(basicInfo.getContact());
+    user.setFirstName(basicInfo.getFirstName());
+    user.setLastName(basicInfo.getLastName());
+    user.setPermissions(userInfo.getPermissions());
+    user.setPasswordHash("password_hash");
+
+    loginInfo = new UserLoginInfo();
+    loginInfo.setUserName(basicInfo.getUsername());
+    loginInfo.setPassword(registerInfo.getPassword());
   }
 
   @Test
   void findUserByName_shouldReturnUserInfo_whenUserExists() throws Exception {
     // Arrange
-    when(userService.findUserByUsername("JohnDoe")).thenReturn(userInfo);
-    String token = jwtUtil.generateToken("JohnDoe");
+    when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(user));
+
+    when(userService.findUserByUsername(USERNAME)).thenReturn(userInfo);
+    String token = jwtUtil.generateToken(USERNAME);
 
     // Act & Assert
-    mockMvc.perform(get("/user/{username}", "JohnDoe").header("Authorization", "Bearer " + token))
+    mockMvc.perform(get("/user/{username}", USERNAME).header("Authorization", "Bearer " + token))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.basic_info.username").value("JohnDoe"));
+            // Check that the response body contains the correct user info
+            .andExpect(jsonPath("$.basic_info.username").value(USERNAME));
+  }
+
+
+  @Test
+  void findUserByName_shouldReturnNotFound_whenUserDoesNotExists() throws Exception {
+    // Arrange
+    when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(user));
+
+    when(userService.findUserByUsername(USERNAME)).thenThrow(new ResourceNotFoundException("User not found"));
+    String token = jwtUtil.generateToken(USERNAME);
+
+    // Act & Assert
+    mockMvc.perform(get("/user/{username}", USERNAME).header("Authorization", "Bearer " + token))
+            .andExpect(status().isNotFound());
+  }
+
+  @Test
+  void findUserByName_shouldReturn403_whenNotAuthenticated() throws Exception {
+    // Act & Assert
+    mockMvc.perform(get("/user/{username}", USERNAME))
+            .andExpect(status().isForbidden());
   }
 
   @Test
@@ -87,4 +136,90 @@ public class UserControllerTest {
             )
             .andExpect(status().isOk());
   }
+
+  @Test
+  void registerNewUser_shouldReturnConflict_ifUsernameAlreadyExists() throws Exception {
+    // Arrange
+    when(userService.registerNewUser(any(UserRegisterInfo.class))).thenThrow(new UserAlreadyExistsException("Username already exists"));
+
+    // Act & Assert
+    mockMvc.perform(post("/register")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(registerInfo))
+            )
+            .andExpect(status().isConflict());
+  }
+
+
+  @Test
+  void loginUser_shouldReturnOkAndToken_whenCredentialsAreValid() throws Exception {
+    // Arrange
+    when(userService.login(any(UserLoginInfo.class))).thenReturn(authResponse);
+
+    // Act & Assert
+    mockMvc.perform(post("/user")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(loginInfo)))
+            .andExpect(status().isOk())
+            // Check that the response body contains the correct user info
+            .andExpect(jsonPath("$.basic_info.username").value(USERNAME))
+            // Check that the Authorization header is present in the response
+            .andExpect(header().exists("Authorization"));
+  }
+
+  @Test
+  void loginUser_shouldReturn403_whenCredentialsAreInvalid() throws Exception {
+    // Arrange
+    when(userService.login(any(UserLoginInfo.class))).thenThrow(new BadCredentialsException("Invalid credentials"));
+
+    // Act & Assert
+    mockMvc.perform(post("/user")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(loginInfo)))
+            .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void deleteUser_shouldReturnOk_whenUserExists() throws Exception {
+    // Arrange
+    when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(user));
+
+    doNothing().when(userService).deleteUserByUsername(USERNAME);
+    String token = jwtUtil.generateToken(USERNAME);
+
+    // Act & Assert
+    mockMvc.perform(delete("/user/{username}", USERNAME)
+                    .header("Authorization", "Bearer " + token))
+            .andExpect(status().isOk());
+
+    verify(userService, times(1)).deleteUserByUsername(USERNAME);
+  }
+
+
+  @Test
+  void deleteUser_shouldReturnNotFound_whenUserDoesNotExist() throws Exception {
+    // Arrange
+    when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(user));
+
+    doThrow(new ResourceNotFoundException("User not found")).when(userService).deleteUserByUsername(USERNAME);
+    String token = jwtUtil.generateToken(USERNAME);
+
+    // Act & Assert
+    mockMvc.perform(delete("/user/{username}", USERNAME)
+                    .header("Authorization", "Bearer " + token))
+            .andExpect(status().isNotFound());
+  }
+
+  @Test
+  void deleteUser_shouldReturn403_whenNotAuthenticated() throws Exception {
+    // Arrange
+    when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(user));
+
+    doNothing().when(userService).deleteUserByUsername(USERNAME);
+
+    // Act & Assert
+    mockMvc.perform(delete("/user/{username}", USERNAME))
+            .andExpect(status().isForbidden());
+  }
+
 }
