@@ -19,10 +19,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import user.dto.BasicUserInfo;
-import user.dto.UserInfo;
-import user.dto.UserLoginInfo;
-import user.dto.UserRegisterInfo;
+import user.dto.*;
 
 import java.util.Optional;
 
@@ -54,6 +51,8 @@ public class UserControllerTest {
   private User user;
   private UserInfo userInfo;
   private UserRegisterInfo registerInfo;
+  private ChangeUserInfo changeInfo;
+  private ChangePermissions changePermissions;
   private UserLoginInfo loginInfo;
 
   private static final String USERNAME = "JohnDoe";
@@ -73,6 +72,12 @@ public class UserControllerTest {
     registerInfo = new UserRegisterInfo();
     registerInfo.setBasicInfo(basicInfo);
     registerInfo.setPassword("password");
+
+    changeInfo = new ChangeUserInfo();
+    changeInfo.setBasicInfo(basicInfo);
+
+    changePermissions = new ChangePermissions();
+    changePermissions.setPermissions(ChangePermissions.PermissionsEnum.READ);
 
     user = new User();
     user.setId(1L);
@@ -101,6 +106,8 @@ public class UserControllerTest {
             .andExpect(status().isOk())
             // Check that the response body contains the correct user info
             .andExpect(jsonPath("$.basic_info.username").value(USERNAME));
+
+    verify(userService, times(1)).findUserByUsername(USERNAME);
   }
 
 
@@ -125,7 +132,7 @@ public class UserControllerTest {
   }
 
   @Test
-  void registerNewUser_shouldReturnCreated_withValidInfo() throws Exception {
+  void registerNewUser_shouldReturnOk_withValidInfo() throws Exception {
     // Arrange
     when(userService.registerNewUser(any(UserRegisterInfo.class))).thenReturn(authResponse);
 
@@ -135,6 +142,8 @@ public class UserControllerTest {
                     .content(objectMapper.writeValueAsString(registerInfo))
             )
             .andExpect(status().isOk());
+
+    verify(userService, times(1)).registerNewUser(registerInfo);
   }
 
   @Test
@@ -165,6 +174,8 @@ public class UserControllerTest {
             .andExpect(jsonPath("$.basic_info.username").value(USERNAME))
             // Check that the Authorization header is present in the response
             .andExpect(header().exists("Authorization"));
+
+    verify(userService, times(1)).login(loginInfo);
   }
 
   @Test
@@ -222,4 +233,115 @@ public class UserControllerTest {
             .andExpect(status().isForbidden());
   }
 
+  @Test
+  void updateUserProfile_shouldReturnOk_whenUserExists() throws Exception {
+    // Arrange
+    when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(user));
+
+    doNothing().when(userService).updateUserProfile(USERNAME, changeInfo);
+    String token = jwtUtil.generateToken(USERNAME);
+
+    // Act & Assert
+    mockMvc.perform(put("/user/{username}", USERNAME)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(changeInfo))
+                    .header("Authorization", "Bearer " + token))
+            .andExpect(status().isOk());
+
+    verify(userService, times(1)).updateUserProfile(USERNAME, changeInfo);
+  }
+
+  @Test
+  void updateUserProfile_shouldReturnNotFound_whenUserDoesNotExist() throws Exception {
+    // Arrange
+    when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(user));
+
+    doThrow(new ResourceNotFoundException("User not found")).when(userService).updateUserProfile(USERNAME, changeInfo);
+    String token = jwtUtil.generateToken(USERNAME);
+
+    // Act & Assert
+    mockMvc.perform(put("/user/{username}", USERNAME)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(changeInfo))
+                    .header("Authorization", "Bearer " + token))
+            .andExpect(status().isNotFound());
+  }
+
+  @Test
+  void updateUserProfile_shouldReturnConflict_whenUsernameAlreadyExists() throws Exception {
+    // Arrange
+    when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(user));
+
+    doThrow(new UserAlreadyExistsException("Username already exists")).when(userService).updateUserProfile(USERNAME, changeInfo);
+    String token = jwtUtil.generateToken(USERNAME);
+
+    // Act & Assert
+    mockMvc.perform(put("/user/{username}", USERNAME)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(changeInfo))
+                    .header("Authorization", "Bearer " + token))
+            .andExpect(status().isConflict());
+  }
+
+  @Test
+  void updateUserProfile_shouldReturn403_whenNotAuthenticated() throws Exception {
+    // Arrange
+    when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(user));
+
+    doNothing().when(userService).updateUserProfile(USERNAME, changeInfo);
+
+    // Act & Assert
+    mockMvc.perform(put("/user/{username}", USERNAME)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(changeInfo)))
+            .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void updateUserPermissions_shouldReturnOk_whenUserExists() throws Exception {
+    // Arrange
+    when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(user));
+
+    doNothing().when(userService).changeUserPermissions(USERNAME, changePermissions);
+    String token = jwtUtil.generateToken(USERNAME);
+
+    // Act & Assert
+    mockMvc.perform(put("/permissions/{username}", USERNAME)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(changePermissions))
+                    .header("Authorization", "Bearer " + token))
+            .andExpect(status().isOk());
+
+    verify(userService, times(1)).changeUserPermissions(USERNAME, changePermissions);
+  }
+
+  @Test
+  void updateUserPermissions_shouldReturnNotFound_whenUserDoesNotExist() throws Exception {
+    // Arrange
+    when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(user));
+
+    doThrow(new ResourceNotFoundException("User not found")).when(userService).changeUserPermissions(USERNAME, changePermissions);
+    String token = jwtUtil.generateToken(USERNAME);
+
+    // Act & Assert
+    mockMvc.perform(put("/permissions/{username}", USERNAME)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(changePermissions))
+                    .header("Authorization", "Bearer " + token))
+            .andExpect(status().isNotFound());
+  }
+
+  @Test
+  void updateUserPermissions_shouldReturn403_whenNotAuthenticated() throws Exception {
+    // Arrange
+    when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(user));
+
+    doNothing().when(userService).changeUserPermissions(USERNAME, changePermissions);
+
+    // Act & Assert
+    mockMvc.perform(put("/permissions/{username}", USERNAME)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(changePermissions)))
+            .andExpect(status().isForbidden());
+  }
 }
