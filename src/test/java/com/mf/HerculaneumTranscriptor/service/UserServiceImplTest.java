@@ -6,20 +6,17 @@ import com.mf.HerculaneumTranscriptor.dto.AuthenticationResponse;
 import com.mf.HerculaneumTranscriptor.exception.ResourceNotFoundException;
 import com.mf.HerculaneumTranscriptor.exception.UserAlreadyExistsException;
 import com.mf.HerculaneumTranscriptor.repository.UserRepository;
+import com.mf.HerculaneumTranscriptor.security.JwtUtil;
 import com.mf.HerculaneumTranscriptor.service.impl.UserServiceImpl;
-import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
 import user.dto.*;
 
 import java.util.Optional;
@@ -29,22 +26,20 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-@SpringBootTest
-@ActiveProfiles("test")
-@ExtendWith(SpringExtension.class) // Enables MockBean annotations
-@RequiredArgsConstructor(onConstructor = @__({@Autowired}))
+@ExtendWith(MockitoExtension.class)
 public class UserServiceImplTest {
-  private final UserServiceImpl userService;
+  @InjectMocks
+  private UserServiceImpl userService;
 
   // Create mocks for all dependencies of the class under test.
-  @MockitoBean
+  @Mock
   private UserRepository userRepository;
-
-  @MockitoBean
+  @Mock
   private UserMapper userMapper;
-
-  @MockitoBean
+  @Mock
   private PasswordEncoder passwordEncoder;
+  @Mock
+  private JwtUtil jwtUtil;
 
   // Reusable test data objects
   private User user;
@@ -99,6 +94,7 @@ public class UserServiceImplTest {
   void login_shouldReturnAuthenticationResponse_whenCredentialsAreValid() {
     // Arrange
     // Mock the password checker to flag passwords as matching
+    when(jwtUtil.generateToken(any())).thenReturn("mock.jwt.token");
     when(passwordEncoder.matches(anyString(), anyString()))
             .thenReturn(true);
     when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(user));
@@ -141,6 +137,7 @@ public class UserServiceImplTest {
   @Test
   void registerNewUser_shouldCreateAndReturnUser_whenUsernameIsAvailable() {
     // Arrange
+    when(jwtUtil.generateToken(any())).thenReturn("mock.jwt.token");
 
     // When checking if user exists, say no.
     when(userRepository.existsByUsername(USERNAME)).thenReturn(false);
@@ -201,7 +198,6 @@ public class UserServiceImplTest {
   // Tests for deleteUserByUsername
 
   @Test
-  @WithMockUser(username = USERNAME, roles = {"ADMIN"})
   void deleteUserByUsername_shouldDeleteUser_whenUserExists() {
     // Arrange
     when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(user));
@@ -216,7 +212,6 @@ public class UserServiceImplTest {
   }
 
   @Test
-  @WithMockUser(username = USERNAME, roles = {"ADMIN"})
   void deleteUserByUsername_shouldThrowResourceNotFoundException_whenUserDoesNotExist() {
     // Arrange
     when(userRepository.findByUsername(UNK_USERNAME)).thenReturn(Optional.empty());
@@ -232,7 +227,6 @@ public class UserServiceImplTest {
   // Tests for updateUserProfile
 
   @Test
-  @WithMockUser(username = USERNAME, roles = {"READ"})
   void updateUserProfile_shouldUpdateInfo_whenPasswordIsNull() {
     // Arrange
     // Password is null in this DTO, and all personal information is different
@@ -272,7 +266,6 @@ public class UserServiceImplTest {
   }
 
   @Test
-  @WithMockUser(username = USERNAME, roles = {"READ"})
   void updateUserProfile_shouldUpdatePassword_whenPasswordIsProvided() {
     // Arrange
     ChangeUserInfo updateInfo = new ChangeUserInfo();
@@ -295,7 +288,6 @@ public class UserServiceImplTest {
   }
 
   @Test
-  @WithMockUser(username = USERNAME, roles = {"ADMIN"})
   void updateUserProfile_shouldThrowUserAlreadyExistsException_whenNewUsernameIsTaken() {
     // Arrange
     ChangeUserInfo updateInfo = new ChangeUserInfo();
@@ -318,7 +310,6 @@ public class UserServiceImplTest {
   // Tests for changeUserPermissions
 
   @Test
-  @WithMockUser(username = USERNAME, roles = {"ADMIN"})
   void changeUserPermissions_shouldUpdatePermissions_whenUserExists() {
     // Arrange
     ChangePermissions newPermissionsDto = new ChangePermissions();
@@ -339,7 +330,6 @@ public class UserServiceImplTest {
   }
 
   @Test
-  @WithMockUser(username = USERNAME, roles = {"ADMIN"})
   void changeUserPermissions_shouldThrowResourceNotFoundException_whenUserDoesNotExist() {
     // Arrange
     ChangePermissions newPermissionsDto = new ChangePermissions();
