@@ -14,7 +14,7 @@ public class JwtUserDetails implements UserDetails {
 
   public JwtUserDetails(User user) {
     this.username = user.getUsername();
-    this.authorities = List.of(new SimpleGrantedAuthority("ROLE_" + user.getPermissions().getValue()));
+    this.authorities = List.of(new SimpleGrantedAuthority("ROLE_" + user.getPermissions().getValue().toUpperCase()));
   }
 
   @Override
