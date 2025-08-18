@@ -180,7 +180,7 @@ public class UserControllerTest {
   }
 
   @Test
-  void loginUser_shouldReturn403_whenCredentialsAreInvalid() throws Exception {
+  void loginUser_shouldReturn401_whenCredentialsAreInvalid() throws Exception {
     // Arrange
     when(userService.login(any(UserLoginInfo.class))).thenThrow(new BadCredentialsException("Invalid credentials"));
 
@@ -188,7 +188,7 @@ public class UserControllerTest {
     mockMvc.perform(post("/user")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(loginInfo)))
-            .andExpect(status().isForbidden());
+            .andExpect(status().isUnauthorized());
   }
 
   @Test

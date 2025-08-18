@@ -165,7 +165,7 @@ public class UserFlowIntegrationTest {
   }
 
   @Test
-  void login_shouldReturn403_whenPasswordIsIncorrect() throws Exception {
+  void login_shouldReturn401_whenPasswordIsIncorrect() throws Exception {
     // Arrange
     // The real password is 'password'. We try to log in with 'wrong-password'.
     UserLoginInfo loginInfo = new UserLoginInfo()
@@ -176,7 +176,7 @@ public class UserFlowIntegrationTest {
     mockMvc.perform(post("/user")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(loginInfo)))
-            .andExpect(status().isForbidden());
+            .andExpect(status().isUnauthorized());
   }
 
   // Standard flow verification (The happy path)

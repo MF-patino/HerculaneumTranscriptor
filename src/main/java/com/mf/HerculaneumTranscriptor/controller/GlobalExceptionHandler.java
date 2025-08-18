@@ -45,7 +45,7 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(BadCredentialsException.class)
   public ResponseEntity<Object> handleBadCredentials(BadCredentialsException ex, WebRequest request) {
 
-    return buildResponseBody(HttpStatus.FORBIDDEN, "Bad credentials", ex.getMessage());
+    return buildResponseBody(HttpStatus.UNAUTHORIZED, "Bad credentials", ex.getMessage());
   }
 
   @ExceptionHandler(AuthorizationDeniedException.class)
