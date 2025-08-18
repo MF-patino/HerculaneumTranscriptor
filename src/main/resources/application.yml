@@ -1,3 +1,26 @@
 spring:
   application:
     name: HerculaneumTranscriptor
+
+  jpa:
+    hibernate:
+      ddl-auto: update # creates needed tables if they don't exist
+
+  # use database instance
+  datasource:
+    url: jdbc:postgresql://localhost:5432/scrolls
+    username: sa
+    password: sa
+
+api:
+  user:
+    pageSize: 64
+
+security:
+  # jwt expiration time in milliseconds
+  expiration: 3600000 # (1 hour)
+  # secret base64 string for jwt key generation
+  secret: 074575585bd48a11cf09a250c39c8bfc32878f11d057b3bf265cd1901563cd1a
+  rootProfile:
+    username: root
+    password: root
