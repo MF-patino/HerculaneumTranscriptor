@@ -8,16 +8,26 @@ import com.mf.HerculaneumTranscriptor.exception.UserAlreadyExistsException;
 import com.mf.HerculaneumTranscriptor.repository.UserRepository;
 import com.mf.HerculaneumTranscriptor.security.JwtUtil;
 import com.mf.HerculaneumTranscriptor.service.UserService;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import user.dto.*;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 @Service
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
+  @Value( "${api.user.pageSize}" )
+  private Integer PAGE_SIZE;
+
   private final JwtUtil jwtUtil;
   private final UserRepository userRepository;
   private final UserMapper userMapper;
@@ -58,6 +68,21 @@ public class UserServiceImpl implements UserService {
         userRepository.findByUsername(username)
             .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username))
     );
+  }
+
+  @Override
+  public List<UserInfo> findAllUsers(Integer index) {
+    index = index == null ? 0 : index;
+    int pageNumber = index / PAGE_SIZE;
+
+    // Retrieve a page of users
+    Pageable pageable = PageRequest.of(pageNumber, PAGE_SIZE);
+    Page<User> userPage = userRepository.findAll(pageable);
+
+    // Convert the content of the page to a list of DTOs.
+    return userPage.getContent().stream()
+            .map(userMapper::userToUserInfo)
+            .collect(Collectors.toList());
   }
 
   @Override

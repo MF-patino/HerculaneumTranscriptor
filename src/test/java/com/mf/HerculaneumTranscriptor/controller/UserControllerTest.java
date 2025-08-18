@@ -21,6 +21,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import user.dto.*;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -342,6 +343,38 @@ public class UserControllerTest {
     mockMvc.perform(put("/permissions/{username}", USERNAME)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(changePermissions)))
+            .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void findAllUsers_shouldReturnOk_whenAuthenticated() throws Exception {
+    // Arrange
+    when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(user));
+
+    List users = List.of(userInfo);
+    when(userService.findAllUsers(any())).thenReturn(users);
+    String token = jwtUtil.generateToken(USERNAME);
+
+    // Act & Assert
+    mockMvc.perform(get("/user")
+                    .header("Authorization", "Bearer " + token))
+            .andExpect(status().isOk())
+            // Check that the response body contains the correct user info
+            .andExpect(jsonPath("$[0].basic_info.username").value(USERNAME));
+
+    verify(userService, times(1)).findAllUsers(any());
+  }
+
+  @Test
+  void findAllUsers_shouldReturn403_whenNotAuthenticated() throws Exception {
+    // Arrange
+    when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(user));
+
+    List users = List.of(userInfo);
+    when(userService.findAllUsers(anyInt())).thenReturn(users);
+
+    // Act & Assert
+    mockMvc.perform(get("/user"))
             .andExpect(status().isForbidden());
   }
 }

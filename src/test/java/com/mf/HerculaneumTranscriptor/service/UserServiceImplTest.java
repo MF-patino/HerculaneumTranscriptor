@@ -15,10 +15,16 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
 import user.dto.*;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
@@ -56,8 +62,12 @@ public class UserServiceImplTest {
   private static final String LAST_NAME = "Doe";
   private static final String UNK_USERNAME = "UnknownUser";
 
+  private static final Integer pageSize = 64;
+
   @BeforeEach
   void setUp() {
+    ReflectionTestUtils.setField(userService, "PAGE_SIZE", pageSize);
+
     // Create user entity
     user = new User();
     user.setId(1L);
@@ -341,5 +351,88 @@ public class UserServiceImplTest {
 
     // Verify that save was never called
     verify(userRepository, never()).save(any());
+  }
+
+  // Tests for getAllUsers
+
+  @Test
+  void findAllUsers_shouldReturnListOfUsers_whenCalledWithIndex() {
+    // Arrange
+    int index = pageSize; // We want to test a non-zero index
+    int expectedPageNumber = pageSize/index; // 64 / 64 = 1
+
+    // Mock Page object that the repository will return.
+    // This simulates the database returning a page of User entities.
+    Page<User> userPage = new PageImpl<>(List.of(user));
+
+    // Use an ArgumentCaptor to capture the Pageable object that is passed
+    // to the repository. This is how we will verify the page number calculation.
+    ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+
+    // When findAll is called with ANY Pageable, return our mock Page object.
+    when(userRepository.findAll(pageableCaptor.capture())).thenReturn(userPage);
+
+    when(userMapper.userToUserInfo(user)).thenReturn(userInfo);
+
+    // Act
+    List<UserInfo> result = userService.findAllUsers(index);
+
+    // Assert
+    //Verify the result is not empty and contains the expected DTO.
+    assertThat(result).isNotNull();
+    assertThat(result.size()).isEqualTo(1);
+    assertThat(result.getFirst()).isEqualTo(userInfo);
+
+    // Verify the captured Pageable object to ensure our logic was correct.
+    Pageable capturedPageable = pageableCaptor.getValue();
+    assertThat(capturedPageable.getPageNumber()).isEqualTo(expectedPageNumber);
+    assertThat(capturedPageable.getPageSize()).isEqualTo(pageSize);
+
+    // Verify that the repository and mapper were called.
+    verify(userRepository, times(1)).findAll(any(Pageable.class));
+    verify(userMapper, times(1)).userToUserInfo(user);
+  }
+
+  @Test
+  void findAllUsers_shouldDefaultToFirstPage_whenIndexIsNull() {
+    // Arrange
+    int expectedPageNumber = 0; // The default
+
+    Page<User> userPage = new PageImpl<>(List.of(user));
+    ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+    when(userRepository.findAll(pageableCaptor.capture())).thenReturn(userPage);
+    when(userMapper.userToUserInfo(user)).thenReturn(userInfo);
+
+    // Act
+    // Call the method with a null index, as the controller would.
+    List<UserInfo> result = userService.findAllUsers(null);
+
+    // Assert
+    assertThat(result).isNotNull();
+    assertThat(result.size()).isEqualTo(1);
+
+    // Verify that the page number correctly defaulted to 0.
+    Pageable capturedPageable = pageableCaptor.getValue();
+    assertThat(capturedPageable.getPageNumber()).isEqualTo(expectedPageNumber);
+    assertThat(capturedPageable.getPageSize()).isEqualTo(pageSize);
+  }
+
+  @Test
+  void findAllUsers_shouldReturnEmptyList_whenRepositoryReturnsEmptyPage() {
+    // Arrange
+    // Simulate the database returning no users for the requested page.
+    Page<User> emptyPage = new PageImpl<>(Collections.emptyList());
+    when(userRepository.findAll(any(Pageable.class))).thenReturn(emptyPage);
+
+    // Act
+    List<UserInfo> result = userService.findAllUsers(0);
+
+    // Assert
+    // Verify that the final result is an empty list.
+    assertThat(result).isNotNull();
+    assertThat(result.isEmpty()).isTrue();
+
+    // Verify that the mapper was never called, because there were no users to map.
+    verify(userMapper, never()).userToUserInfo(any());
   }
 }

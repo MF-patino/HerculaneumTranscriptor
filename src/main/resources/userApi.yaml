@@ -35,6 +35,38 @@ paths:
           description: Unexpected error
           $ref: '#/components/responses/Error'
 
+    get:
+      tags:
+        - user
+      summary: Get a list of users and their information.
+      description: Users can fetch a list of all users in the system with their public information.
+      operationId: getAllUsers
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: index
+          in: query
+          description: Index of where to start listing from
+          required: false
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: A list of users with maximum length of 64.
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 64
+                items:
+                  $ref: '#/components/schemas/UserInfo'
+        '401':
+          description: User unauthorized
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: User not found
+          $ref: '#/components/responses/Error'
+
   /register:
     post:
       tags:
@@ -118,9 +150,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserInfo'
-        '400':
-          description: Invalid username supplied
-          $ref: '#/components/responses/Error'
         '404':
           description: User not found
           $ref: '#/components/responses/Error'

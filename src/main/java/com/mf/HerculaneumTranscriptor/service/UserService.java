@@ -7,6 +7,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.AuthenticationException;
 import user.dto.*;
 
+import java.util.List;
+
 /**
  * Service layer defining business operations related to Users.
  * This interface is independent of the web/controller layer.
@@ -40,6 +42,16 @@ public interface UserService {
    */
   UserInfo findUserByUsername(String username) throws ResourceNotFoundException;
 
+/* <<<<<<<<<<<<<<  ✨ Windsurf Command ⭐ >>>>>>>>>>>>>>>> */
+  /**
+   * Finds all users in the system, starting from the given index, returning at most PAGE_SIZE users.
+   * PAGE_SIZE is defined in the application.yml file as api.user.pageSize.
+   *
+   * @param index The index of the first user to return.
+   * @return A list of UserInfo objects containing the public information of all users.
+   */
+/* <<<<<<<<<<  24851821-db3c-4047-aa39-9a7277405ee4  >>>>>>>>>>> */
+  List<UserInfo> findAllUsers(Integer index);
   /**
    * Deletes a user from the system.
    * Regular users can delete their own account.

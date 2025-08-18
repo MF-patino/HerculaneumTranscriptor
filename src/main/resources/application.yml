@@ -12,6 +12,10 @@ spring:
     username: sa
     password: sa
 
+api:
+  user:
+    pageSize: 64
+
 security:
   # jwt expiration time in milliseconds
   expiration: 3600000 # (1 hour)

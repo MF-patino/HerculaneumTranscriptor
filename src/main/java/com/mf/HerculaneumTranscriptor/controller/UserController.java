@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.validation.ValidationException;
+import java.util.List;
 
 @RestController
 @AllArgsConstructor
@@ -31,6 +32,12 @@ public class UserController implements UserApi {
     userService.deleteUserByUsername(username);
 
     return ResponseEntity.ok().build();
+  }
+
+  @Override
+  public ResponseEntity<List<UserInfo>> getAllUsers(Integer index) {
+    List<UserInfo> users = userService.findAllUsers(index);
+    return ResponseEntity.ok(users);
   }
 
   @Override
