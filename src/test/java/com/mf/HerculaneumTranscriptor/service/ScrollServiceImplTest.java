@@ -3,6 +3,7 @@ package com.mf.HerculaneumTranscriptor.service;
 import com.mf.HerculaneumTranscriptor.domain.Scroll;
 import com.mf.HerculaneumTranscriptor.domain.mapper.ScrollMapper;
 import com.mf.HerculaneumTranscriptor.exception.ResourceAlreadyExistsException;
+import com.mf.HerculaneumTranscriptor.exception.ResourceNotFoundException;
 import com.mf.HerculaneumTranscriptor.repository.ScrollRepository;
 import com.mf.HerculaneumTranscriptor.service.impl.ScrollServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,6 +14,7 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.core.io.Resource;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
 import scroll.dto.NewScroll;
@@ -24,6 +26,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -149,4 +152,66 @@ public class ScrollServiceImplTest {
     verify(scrollRepository, never()).save(any());
   }
 
+  // Tests for deleteScroll
+
+  @Test
+  void deleteScroll_shouldDeleteScrollAndFile_whenScrollExists() throws IOException {
+    // Arrange
+    when(scrollRepository.findByScrollId(SCROLL_ID)).thenReturn(Optional.of(scroll));
+    doNothing().when(scrollRepository).delete(scroll);
+
+    // Mock static Files.delete method
+    try (MockedStatic<Files> mockedFiles = Mockito.mockStatic(Files.class)) {
+      mockedFiles.when(() -> Files.delete(any(Path.class))).thenAnswer(invocation -> null);
+
+      // Act
+      scrollService.deleteScroll(SCROLL_ID);
+
+      // Assert
+      verify(scrollRepository, times(1)).delete(scroll);
+      Path expectedPath = TEST_STORAGE_LOCATION.resolve(scroll.getImagePath()).normalize();
+      mockedFiles.verify(() -> Files.delete(eq(expectedPath)));
+    }
+  }
+
+  @Test
+  void deleteScroll_shouldThrowResourceNotFoundException_whenScrollDoesNotExist() {
+    // Arrange
+    when(scrollRepository.findByScrollId(SCROLL_ID)).thenReturn(Optional.empty());
+
+    // Act & Assert
+    assertThrows(ResourceNotFoundException.class, () -> scrollService.deleteScroll(SCROLL_ID));
+    verify(scrollRepository, never()).delete(any());
+  }
+
+  // Tests for getScrollImage
+
+  @Test
+  void getScrollImage_shouldReturnResource_whenScrollAndFileExist() throws IOException {
+    // Arrange
+    when(scrollRepository.findByScrollId(SCROLL_ID)).thenReturn(Optional.of(scroll));
+    Path expectedPath = TEST_STORAGE_LOCATION.resolve(scroll.getImagePath()).normalize();
+
+    // We mock the static getResourceAsStream method
+    try (MockedStatic<Files> mockedFiles = Mockito.mockStatic(Files.class)) {
+      InputStream mockInputStream = mock(InputStream.class);
+      mockedFiles.when(() -> Files.newInputStream(any(Path.class))).thenReturn(mockInputStream);
+
+      // Act
+      Resource result = scrollService.getScrollImage(SCROLL_ID);
+
+      // Assert
+      assertThat(result).isNotNull();
+      assertThat(result.getInputStream()).isEqualTo(mockInputStream);
+    }
+  }
+
+  @Test
+  void getScrollImage_shouldThrowResourceNotFoundException_whenScrollDoesNotExist() {
+    // Arrange
+    when(scrollRepository.findByScrollId(SCROLL_ID)).thenReturn(Optional.empty());
+
+    // Act & Assert
+    assertThrows(ResourceNotFoundException.class, () -> scrollService.getScrollImage(SCROLL_ID));
+  }
 }

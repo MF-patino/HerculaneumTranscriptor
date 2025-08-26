@@ -57,6 +57,6 @@ public interface ScrollService {
    * @return A Spring Resource object pointing to the image file.
    * @throws com.mf.HerculaneumTranscriptor.exception.ResourceNotFoundException if the scroll or its image does not exist.
    */
-  Resource getScrollImage(String scrollId) throws ResourceNotFoundException;
+  Resource getScrollImage(String scrollId) throws ResourceNotFoundException, IOException;
 
 }

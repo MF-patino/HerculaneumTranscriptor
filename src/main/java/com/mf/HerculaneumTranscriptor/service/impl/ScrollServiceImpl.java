@@ -68,11 +68,22 @@ public class ScrollServiceImpl implements ScrollService {
 
   @Override
   public void deleteScroll(String scrollId) throws ResourceNotFoundException, IOException {
+    com.mf.HerculaneumTranscriptor.domain.Scroll scroll = scrollRepository.findByScrollId(scrollId)
+            .orElseThrow(() -> new ResourceNotFoundException("Scroll not found"));
 
+    scrollRepository.delete(scroll); // Deletes the metadata from the DB
+
+    Path filePath = storageLocation.resolve(scroll.getImagePath()).normalize();
+    Files.delete(filePath);
   }
 
   @Override
-  public Resource getScrollImage(String scrollId) throws ResourceNotFoundException {
-    return null;
+  public Resource getScrollImage(String scrollId) throws ResourceNotFoundException, IOException {
+    com.mf.HerculaneumTranscriptor.domain.Scroll scroll = scrollRepository.findByScrollId(scrollId)
+            .orElseThrow(() -> new ResourceNotFoundException("Scroll not found"));
+
+    Path filePath = storageLocation.resolve(scroll.getImagePath()).normalize();
+    InputStream in = Files.newInputStream(filePath);
+    return new InputStreamResource(in);
   }
 }

@@ -25,8 +25,9 @@ public class ScrollController implements ScrollsApi {
   }
 
   @Override
-  public ResponseEntity<Void> deleteScroll(String scrollId) {
-    return null;
+  public ResponseEntity<Void> deleteScroll(String scrollId) throws IOException {
+    scrollService.deleteScroll(scrollId);
+    return ResponseEntity.ok().build();
   }
 
   @Override
@@ -36,7 +37,8 @@ public class ScrollController implements ScrollsApi {
   }
 
   @Override
-  public ResponseEntity<Resource> getScrollImage(String scrollId) {
-    return null;
+  public ResponseEntity<Resource> getScrollImage(String scrollId) throws IOException {
+    Resource inkImage = scrollService.getScrollImage(scrollId);
+    return ResponseEntity.ok(inkImage);
   }
 }
