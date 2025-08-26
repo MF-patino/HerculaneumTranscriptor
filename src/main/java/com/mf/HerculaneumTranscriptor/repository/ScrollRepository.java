@@ -7,4 +7,5 @@ import java.util.Optional;
 
 public interface ScrollRepository extends CrudRepository<Scroll, Long> {
   Optional<Scroll> findByScrollId(String scrollId);
+  Boolean existsByScrollId(String scrollId);
 }

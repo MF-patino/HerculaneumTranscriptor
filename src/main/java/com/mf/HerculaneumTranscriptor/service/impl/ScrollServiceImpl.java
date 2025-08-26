@@ -6,14 +6,22 @@ import com.mf.HerculaneumTranscriptor.exception.ResourceNotFoundException;
 import com.mf.HerculaneumTranscriptor.repository.ScrollRepository;
 import com.mf.HerculaneumTranscriptor.service.ScrollService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 import scroll.dto.NewScroll;
 import scroll.dto.Scroll;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
+import java.util.stream.StreamSupport;
 
 @Service
 @RequiredArgsConstructor
@@ -21,14 +29,41 @@ public class ScrollServiceImpl implements ScrollService {
   private final ScrollRepository scrollRepository;
   private final ScrollMapper scrollMapper;
 
+  @Value("${api.scrolls.storageDirectory}")
+  private Path storageLocation;
+
   @Override
   public List<Scroll> getAllScrolls() {
-    return List.of();
+    return StreamSupport.stream(scrollRepository.findAll().spliterator(), false).map(scrollMapper::scrollEntityToScrollDto).toList();
   }
 
   @Override
   public Scroll createScroll(NewScroll metadata, MultipartFile inkImage) throws ResourceAlreadyExistsException, IOException {
-    return null;
+    if (scrollRepository.existsByScrollId(metadata.getScrollId())) {
+      throw new ResourceAlreadyExistsException("Scroll with ID '" + metadata.getScrollId() + "' already exists.");
+    }
+
+    com.mf.HerculaneumTranscriptor.domain.Scroll newScroll = scrollMapper.newScrollDtoToScrollEntity(metadata);
+
+    if (!Files.exists(storageLocation))
+      Files.createDirectories(storageLocation);
+
+    String fileExtension = StringUtils.getFilenameExtension(inkImage.getOriginalFilename());
+    String filename = metadata.getScrollId() + "." + fileExtension;
+    Path destinationFile = storageLocation.resolve(filename).normalize();
+
+    // Use a try-with-resources block to ensure the input stream is closed automatically
+    try (InputStream inputStream = inkImage.getInputStream()) {
+      // Copy the file's input stream to the target location.
+      // REPLACE_EXISTING ensures that if a file with the same name somehow exists, it's overwritten.
+      Files.copy(inputStream, destinationFile, StandardCopyOption.REPLACE_EXISTING);
+    }
+
+    newScroll.setImagePath(filename);
+
+    // Important to return savedScroll as creation date is set automatically by the DB
+    com.mf.HerculaneumTranscriptor.domain.Scroll savedScroll = scrollRepository.save(newScroll);
+    return scrollMapper.scrollEntityToScrollDto(savedScroll);
   }
 
   @Override
