@@ -59,4 +59,17 @@ public interface ScrollService {
    */
   Resource getScrollImage(String scrollId) throws ResourceNotFoundException, IOException;
 
+  /**
+   * Updates the metadata of a specific scroll.
+   * This operation is restricted to ROOT or ADMIN users.
+   *
+   * @param scrollId The unique identifier of the scroll to update.
+   * @param newScroll The DTO containing the updated scroll's details.
+   * @return The updated Scroll DTO.
+   * @throws com.mf.HerculaneumTranscriptor.exception.ResourceAlreadyExistsException if a scroll with the same ID already exists.
+   * @throws com.mf.HerculaneumTranscriptor.exception.ResourceNotFoundException if the scroll does not exist.
+   */
+  @PreAuthorize("hasRole('ROOT') or hasRole('ADMIN')")
+  Scroll updateScroll(String scrollId, NewScroll newScroll) throws ResourceAlreadyExistsException, ResourceNotFoundException;
+
 }

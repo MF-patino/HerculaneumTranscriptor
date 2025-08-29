@@ -41,4 +41,10 @@ public class ScrollController implements ScrollsApi {
     Resource inkImage = scrollService.getScrollImage(scrollId);
     return ResponseEntity.ok(inkImage);
   }
+
+  @Override
+  public ResponseEntity<Scroll> updateScroll(String scrollId, NewScroll newScroll) {
+    Scroll scroll = scrollService.updateScroll(scrollId, newScroll);
+    return ResponseEntity.ok(scroll);
+  }
 }

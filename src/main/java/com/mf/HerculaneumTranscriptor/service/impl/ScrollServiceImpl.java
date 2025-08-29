@@ -86,4 +86,23 @@ public class ScrollServiceImpl implements ScrollService {
     InputStream in = Files.newInputStream(filePath);
     return new InputStreamResource(in);
   }
+
+  @Override
+  public Scroll updateScroll(String scrollId, NewScroll metadata) throws ResourceAlreadyExistsException, ResourceNotFoundException {
+    com.mf.HerculaneumTranscriptor.domain.Scroll scroll = scrollRepository.findByScrollId(scrollId)
+            .orElseThrow(() -> new ResourceNotFoundException("Scroll not found"));
+
+    if (!scrollId.equals(metadata.getScrollId()) && scrollRepository.existsByScrollId(metadata.getScrollId())) {
+      throw new ResourceAlreadyExistsException("Scroll with ID '" + metadata.getScrollId() + "' already exists.");
+    }
+
+    scroll.setDescription(metadata.getDescription());
+    scroll.setDisplayName(metadata.getDisplayName());
+    scroll.setScrollId(metadata.getScrollId());
+    scroll.setThumbnailUrl(scrollMapper.uriToString(metadata.getThumbnailUrl()));
+
+    // Update scroll entry
+    com.mf.HerculaneumTranscriptor.domain.Scroll updatedScroll = scrollRepository.save(scroll);
+    return scrollMapper.scrollEntityToScrollDto(updatedScroll);
+  }
 }

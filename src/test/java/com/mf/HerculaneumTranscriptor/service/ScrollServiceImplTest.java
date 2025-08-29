@@ -9,10 +9,7 @@ import com.mf.HerculaneumTranscriptor.service.impl.ScrollServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockedStatic;
-import org.mockito.Mockito;
+import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.io.Resource;
 import org.springframework.mock.web.MockMultipartFile;
@@ -213,5 +210,100 @@ public class ScrollServiceImplTest {
 
     // Act & Assert
     assertThrows(ResourceNotFoundException.class, () -> scrollService.getScrollImage(SCROLL_ID));
+  }
+
+  // Tests for updateScroll
+
+  @Test
+  void updateScroll_shouldUpdateAndReturnScroll_whenScrollExistsAndNewIdIsAvailable() {
+    // Arrange
+    NewScroll updateDto = new NewScroll();
+    String newScrollId = "vesuvius-scroll-1-updated";
+    String newDisplayName = "Updated Scroll Name";
+    updateDto.setScrollId(newScrollId);
+    updateDto.setDisplayName(newDisplayName);
+
+    when(scrollRepository.findByScrollId(SCROLL_ID)).thenReturn(Optional.of(scroll));
+    when(scrollRepository.existsByScrollId(newScrollId)).thenReturn(false);
+    when(scrollRepository.save(any(Scroll.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+    // Mock the final DTO mapping
+    scroll.dto.Scroll updatedDto = new scroll.dto.Scroll();
+    updatedDto.setScrollId(newScrollId);
+    updatedDto.setDisplayName(newDisplayName);
+    when(scrollMapper.scrollEntityToScrollDto(any(Scroll.class))).thenReturn(updatedDto);
+
+    // Act
+    scroll.dto.Scroll result = scrollService.updateScroll(SCROLL_ID, updateDto);
+
+    // Assert
+    // Verify the result is what the mapper returned.
+    assertThat(result).isEqualTo(updatedDto);
+
+    // Use an ArgumentCaptor to inspect what was saved to the database.
+    ArgumentCaptor<Scroll> scrollCaptor = ArgumentCaptor.forClass(Scroll.class);
+    verify(scrollRepository).save(scrollCaptor.capture());
+    Scroll savedScroll = scrollCaptor.getValue();
+
+    // Check that the fields were correctly updated on the entity.
+    assertThat(savedScroll.getScrollId()).isEqualTo(newScrollId);
+    assertThat(savedScroll.getDisplayName()).isEqualTo(newDisplayName);
+  }
+
+  @Test
+  void updateScroll_shouldThrowResourceNotFoundException_whenScrollDoesNotExist() {
+    // Arrange
+    // Simulate the repository not finding the scroll to update.
+    when(scrollRepository.findByScrollId(SCROLL_ID)).thenReturn(Optional.empty());
+    NewScroll updateDto = new NewScroll(); // The content doesn't matter for this test
+    updateDto.setScrollId("some-id");
+
+    // Act & Assert
+    assertThrows(ResourceNotFoundException.class,
+            () -> scrollService.updateScroll(SCROLL_ID, updateDto));
+
+    // Verify that no save operation was ever attempted.
+    verify(scrollRepository, never()).save(any());
+  }
+
+  @Test
+  void updateScroll_shouldThrowResourceAlreadyExistsException_whenNewScrollIdIsTaken() {
+    // Arrange
+    NewScroll updateDto = new NewScroll();
+    String conflictingId = "already-taken-scroll-id";
+    updateDto.setScrollId(conflictingId);
+    updateDto.setDisplayName("Some Name");
+
+    // Mock the repository finding the original scroll.
+    when(scrollRepository.findByScrollId(SCROLL_ID)).thenReturn(Optional.of(scroll));
+
+    // Mock the existence check for the NEW ID to return true.
+    when(scrollRepository.existsByScrollId(conflictingId)).thenReturn(true);
+
+    // Act & Assert
+    assertThrows(ResourceAlreadyExistsException.class,
+            () -> scrollService.updateScroll(SCROLL_ID, updateDto));
+
+    // Verify that no save operation was ever attempted.
+    verify(scrollRepository, never()).save(any());
+  }
+
+  @Test
+  void updateScroll_shouldSucceed_whenScrollIdIsNotChanged() {
+    // Arrange
+    // The user is updating the display name but keeping the same scrollId.
+    NewScroll updateDto = new NewScroll();
+    updateDto.setScrollId(SCROLL_ID); // Same ID as the original
+    updateDto.setDisplayName("A New Display Name");
+
+    when(scrollRepository.findByScrollId(SCROLL_ID)).thenReturn(Optional.of(scroll));
+    when(scrollRepository.save(any(Scroll.class))).thenAnswer(invocation -> invocation.getArgument(0));
+    when(scrollMapper.scrollEntityToScrollDto(any(Scroll.class))).thenReturn(new scroll.dto.Scroll());
+
+    // Act
+    scrollService.updateScroll(SCROLL_ID, updateDto);
+
+    // Assert
+    verify(scrollRepository, times(1)).save(any(Scroll.class));
   }
 }
