@@ -160,6 +160,7 @@ public class ScrollServiceImplTest {
     // Mock static Files.delete method
     try (MockedStatic<Files> mockedFiles = Mockito.mockStatic(Files.class)) {
       mockedFiles.when(() -> Files.delete(any(Path.class))).thenAnswer(invocation -> null);
+      mockedFiles.when(() -> Files.exists(any(Path.class))).thenAnswer(invocation -> true);
 
       // Act
       scrollService.deleteScroll(SCROLL_ID);
@@ -187,7 +188,6 @@ public class ScrollServiceImplTest {
   void getScrollImage_shouldReturnResource_whenScrollAndFileExist() throws IOException {
     // Arrange
     when(scrollRepository.findByScrollId(SCROLL_ID)).thenReturn(Optional.of(scroll));
-    Path expectedPath = TEST_STORAGE_LOCATION.resolve(scroll.getImagePath()).normalize();
 
     // We mock the static getResourceAsStream method
     try (MockedStatic<Files> mockedFiles = Mockito.mockStatic(Files.class)) {
