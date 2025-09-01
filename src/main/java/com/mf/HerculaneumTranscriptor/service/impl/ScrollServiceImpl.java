@@ -74,7 +74,10 @@ public class ScrollServiceImpl implements ScrollService {
     scrollRepository.delete(scroll); // Deletes the metadata from the DB
 
     Path filePath = storageLocation.resolve(scroll.getImagePath()).normalize();
-    Files.delete(filePath);
+
+    // In the improbable case the image does not exist, do not try to delete it
+    if (Files.exists(filePath))
+      Files.delete(filePath);
   }
 
   @Override
