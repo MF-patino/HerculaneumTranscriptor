@@ -4,7 +4,7 @@ import com.mf.HerculaneumTranscriptor.domain.User;
 import com.mf.HerculaneumTranscriptor.domain.mapper.UserMapper;
 import com.mf.HerculaneumTranscriptor.dto.AuthenticationResponse;
 import com.mf.HerculaneumTranscriptor.exception.ResourceNotFoundException;
-import com.mf.HerculaneumTranscriptor.exception.UserAlreadyExistsException;
+import com.mf.HerculaneumTranscriptor.exception.ResourceAlreadyExistsException;
 import com.mf.HerculaneumTranscriptor.repository.UserRepository;
 import com.mf.HerculaneumTranscriptor.security.JwtUtil;
 import com.mf.HerculaneumTranscriptor.service.impl.UserServiceImpl;
@@ -173,7 +173,7 @@ public class UserServiceImplTest {
     when(userRepository.existsByUsername(USERNAME)).thenReturn(true);
 
     // Act & Assert that the expected exception is thrown
-    assertThrows(UserAlreadyExistsException.class, () -> userService.registerNewUser(userRegisterInfo));
+    assertThrows(ResourceAlreadyExistsException.class, () -> userService.registerNewUser(userRegisterInfo));
 
     // Verify that the critical method "save" was never called
     verify(userRepository, never()).save(any());
@@ -310,7 +310,7 @@ public class UserServiceImplTest {
     when(userRepository.existsByUsername("ExistingUser")).thenReturn(true);
 
     // Act & Assert
-    assertThrows(UserAlreadyExistsException.class, () -> userService.updateUserProfile(USERNAME, updateInfo));
+    assertThrows(ResourceAlreadyExistsException.class, () -> userService.updateUserProfile(USERNAME, updateInfo));
 
     // Verify that save was never called
     verify(userRepository, never()).save(any());

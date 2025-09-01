@@ -310,6 +310,7 @@
 							<generateModelTests>false</generateModelTests>
 							<configOptions>
 								<controllerThrowsExceptions>java.io.IOException,com.example.NotFoundException</controllerThrowsExceptions>
+                                <unhandledException>true</unhandledException> <!--  -->
 								<interfaceOnly>true</interfaceOnly>
 								<skipDefaultInterface>true</skipDefaultInterface>
 								<useBeanValidation>true</useBeanValidation>

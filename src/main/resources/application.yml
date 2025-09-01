@@ -6,6 +6,12 @@ spring:
     hibernate:
       ddl-auto: update # creates needed tables if they don't exist
 
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 10MB
+
   # use database instance
   datasource:
     url: jdbc:postgresql://localhost:5432/scrolls
@@ -15,6 +21,8 @@ spring:
 api:
   user:
     pageSize: 64
+  scrolls:
+    storageDirectory: ./uploads/scrolls
 
 security:
   # jwt expiration time in milliseconds

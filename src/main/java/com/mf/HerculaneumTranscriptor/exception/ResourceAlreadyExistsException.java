@@ -2,9 +2,9 @@ package com.mf.HerculaneumTranscriptor.exception;
 /**
  * This exception is thrown when a user tries to register with an already used username or email.
  */
-public class UserAlreadyExistsException extends RuntimeException {
+public class ResourceAlreadyExistsException extends RuntimeException {
 
-  public UserAlreadyExistsException(String message) {
+  public ResourceAlreadyExistsException(String message) {
     super(message);
   }
 }

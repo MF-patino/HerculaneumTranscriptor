@@ -1,7 +1,7 @@
 package com.mf.HerculaneumTranscriptor.controller;
 
 import com.mf.HerculaneumTranscriptor.exception.ResourceNotFoundException;
-import com.mf.HerculaneumTranscriptor.exception.UserAlreadyExistsException;
+import com.mf.HerculaneumTranscriptor.exception.ResourceAlreadyExistsException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -29,11 +29,11 @@ public class GlobalExceptionHandler {
     return new ResponseEntity<>(body, status);
   }
 
-  @ExceptionHandler(UserAlreadyExistsException.class)
+  @ExceptionHandler(ResourceAlreadyExistsException.class)
   public ResponseEntity<Object> handleUserAlreadyExists(
-          UserAlreadyExistsException ex, WebRequest request) {
+          ResourceAlreadyExistsException ex, WebRequest request) {
 
-    return buildResponseBody(HttpStatus.CONFLICT, "User conflict", ex.getMessage());
+    return buildResponseBody(HttpStatus.CONFLICT, "Resource conflict", ex.getMessage());
   }
 
   @ExceptionHandler(ResourceNotFoundException.class)

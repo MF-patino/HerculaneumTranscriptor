@@ -4,7 +4,7 @@ import com.mf.HerculaneumTranscriptor.domain.User;
 import com.mf.HerculaneumTranscriptor.domain.mapper.UserMapper;
 import com.mf.HerculaneumTranscriptor.dto.AuthenticationResponse;
 import com.mf.HerculaneumTranscriptor.exception.ResourceNotFoundException;
-import com.mf.HerculaneumTranscriptor.exception.UserAlreadyExistsException;
+import com.mf.HerculaneumTranscriptor.exception.ResourceAlreadyExistsException;
 import com.mf.HerculaneumTranscriptor.repository.UserRepository;
 import com.mf.HerculaneumTranscriptor.security.JwtUtil;
 import com.mf.HerculaneumTranscriptor.service.UserService;
@@ -34,10 +34,10 @@ public class UserServiceImpl implements UserService {
   private final PasswordEncoder passwordEncoder;
 
   @Override
-  public AuthenticationResponse registerNewUser(UserRegisterInfo registrationInfo) throws UserAlreadyExistsException {
+  public AuthenticationResponse registerNewUser(UserRegisterInfo registrationInfo) throws ResourceAlreadyExistsException {
     // Check if username is already taken
     if (userRepository.existsByUsername(registrationInfo.getBasicInfo().getUsername()))
-      throw new UserAlreadyExistsException("Username is already taken: " + registrationInfo.getBasicInfo().getUsername());
+      throw new ResourceAlreadyExistsException("Username is already taken: " + registrationInfo.getBasicInfo().getUsername());
 
     User user = userMapper.userRegisterInfoToUser(registrationInfo);
     user.setPasswordHash(passwordEncoder.encode(registrationInfo.getPassword()));
@@ -94,7 +94,7 @@ public class UserServiceImpl implements UserService {
   }
 
   @Override
-  public void updateUserProfile(String username, ChangeUserInfo updateInfo) throws ResourceNotFoundException, UserAlreadyExistsException {
+  public void updateUserProfile(String username, ChangeUserInfo updateInfo) throws ResourceNotFoundException, ResourceAlreadyExistsException {
     User originalUser = userRepository.findByUsername(username)
             .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
 
@@ -104,7 +104,7 @@ public class UserServiceImpl implements UserService {
       // Check if desired new username is already taken
       String requestedUsername = updateInfo.getBasicInfo().getUsername();
       if (!username.equals(requestedUsername) && userRepository.existsByUsername(requestedUsername))
-        throw new UserAlreadyExistsException("New username is already taken: " + requestedUsername);
+        throw new ResourceAlreadyExistsException("New username is already taken: " + requestedUsername);
 
       originalUser.setUsername(updateInfo.getBasicInfo().getUsername());
       originalUser.setFirstName(updateInfo.getBasicInfo().getFirstName());

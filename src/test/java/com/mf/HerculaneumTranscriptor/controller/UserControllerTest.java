@@ -5,7 +5,7 @@ import com.mf.HerculaneumTranscriptor.configuration.SecurityConfiguration;
 import com.mf.HerculaneumTranscriptor.domain.User;
 import com.mf.HerculaneumTranscriptor.dto.AuthenticationResponse;
 import com.mf.HerculaneumTranscriptor.exception.ResourceNotFoundException;
-import com.mf.HerculaneumTranscriptor.exception.UserAlreadyExistsException;
+import com.mf.HerculaneumTranscriptor.exception.ResourceAlreadyExistsException;
 import com.mf.HerculaneumTranscriptor.repository.UserRepository;
 import com.mf.HerculaneumTranscriptor.security.JwtUtil;
 import com.mf.HerculaneumTranscriptor.service.UserService;
@@ -150,7 +150,7 @@ public class UserControllerTest {
   @Test
   void registerNewUser_shouldReturnConflict_ifUsernameAlreadyExists() throws Exception {
     // Arrange
-    when(userService.registerNewUser(any(UserRegisterInfo.class))).thenThrow(new UserAlreadyExistsException("Username already exists"));
+    when(userService.registerNewUser(any(UserRegisterInfo.class))).thenThrow(new ResourceAlreadyExistsException("Username already exists"));
 
     // Act & Assert
     mockMvc.perform(post("/register")
@@ -273,7 +273,7 @@ public class UserControllerTest {
     // Arrange
     when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(user));
 
-    doThrow(new UserAlreadyExistsException("Username already exists")).when(userService).updateUserProfile(USERNAME, changeInfo);
+    doThrow(new ResourceAlreadyExistsException("Username already exists")).when(userService).updateUserProfile(USERNAME, changeInfo);
     String token = jwtUtil.generateToken(USERNAME);
 
     // Act & Assert
