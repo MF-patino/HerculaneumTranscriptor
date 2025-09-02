@@ -8,6 +8,7 @@ import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.Instant;
+import java.util.List;
 
 @Entity @Table(name="SCROLLS")
 @Getter @Setter @AllArgsConstructor @NoArgsConstructor
@@ -24,4 +25,7 @@ public class Scroll {
 
   @CreationTimestamp
   private Instant createdAt;
+
+  @OneToMany(mappedBy = "scroll", cascade = CascadeType.ALL, orphanRemoval = true)
+  private List<Annotation> annotations;
 }
