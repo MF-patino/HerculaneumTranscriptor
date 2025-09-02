@@ -5,7 +5,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -15,7 +15,7 @@ public interface AnnotationRepository extends CrudRepository<Annotation, Long> {
 
   // The following methods look into the field scroll.scrollId
   List<Annotation> findByScrollScrollId(String scrollId);
-  List<Annotation> findByScrollScrollIdAndUpdatedAtAfter(String scrollId, Instant timestamp);
+  List<Annotation> findByScrollScrollIdAndUpdatedAtAfter(String scrollId, Date timestamp);
 
   boolean existsByRegionId(UUID regionId);
 

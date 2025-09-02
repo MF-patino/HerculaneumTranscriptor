@@ -20,26 +20,31 @@ public class AnnotationController implements AnnotationsApi {
 
   @Override
   public ResponseEntity<BoxRegion> createRegion(String scrollId, NewBoxRegion newBoxRegion) {
-    return null;
+    BoxRegion region = annotationService.createRegion(scrollId, newBoxRegion);
+    return ResponseEntity.ok(region);
   }
 
   @Override
   public ResponseEntity<Void> deleteRegion(String scrollId, UUID regionId) {
-    return null;
+    annotationService.deleteRegion(scrollId, regionId);
+    return ResponseEntity.noContent().build();
   }
 
   @Override
   public ResponseEntity<RegionUpdateResponse> getScrollRegions(String scrollId, Date since) {
-    return null;
+    RegionUpdateResponse response = annotationService.getScrollRegions(scrollId, since);
+    return ResponseEntity.ok(response);
   }
 
   @Override
   public ResponseEntity<BoxRegion> updateRegion(String scrollId, UUID regionId, NewBoxRegion newBoxRegion) {
-    return null;
+    BoxRegion region = annotationService.updateRegion(scrollId, regionId, newBoxRegion);
+    return ResponseEntity.ok(region);
   }
 
   @Override
   public ResponseEntity<BoxRegion> voteOnRegion(String scrollId, UUID regionId, Vote vote) {
-    return null;
+    BoxRegion region = annotationService.voteOnRegion(scrollId, regionId, vote);
+    return ResponseEntity.ok(region);
   }
 }
