@@ -65,7 +65,7 @@ public class AnnotationServiceImpl implements AnnotationService {
   public BoxRegion createRegion(String scrollId, NewBoxRegion newRegion) throws ResourceNotFoundException {
     // Find the parent scroll. If it doesn't exist, this will throw a 404.
     Scroll parentScroll = scrollRepository.findByScrollId(scrollId)
-            .orElseThrow(() -> new ResourceNotFoundException("Cannot create region: Scroll not found with ID: " + scrollId));
+            .orElseThrow(() -> new ResourceNotFoundException("Cannot create region: scroll not found"));
 
     // Find the author of the annotation from the security context.
     Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -97,7 +97,16 @@ public class AnnotationServiceImpl implements AnnotationService {
 
   @Override
   public void deleteRegion(String scrollId, UUID regionId) throws ResourceNotFoundException {
+    // Find the annotation by its unique internal ID.
+    Annotation annotation = annotationRepository.findByRegionId(regionId)
+            .orElseThrow(() -> new ResourceNotFoundException("Cannot delete region: region not found"));
 
+    // Make sure the annotation belongs to the parent scroll.
+    if (!annotation.getScroll().getScrollId().equals(scrollId))
+      throw new ResourceNotFoundException("Cannot delete region: it does not belong to specified scroll");
+
+    // Delete the annotation from the database.
+    annotationRepository.delete(annotation);
   }
 
   @Override

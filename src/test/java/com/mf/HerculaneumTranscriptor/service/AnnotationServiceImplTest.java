@@ -218,4 +218,50 @@ public class AnnotationServiceImplTest {
 
     SecurityContextHolder.clearContext();
   }
+
+  // Tests for deleteRegion
+
+  @Test
+  void deleteRegion_shouldDeleteAnnotation_whenRegionExistsAndBelongsToScroll() {
+    // Arrange
+    when(annotationRepository.findByRegionId(annotation.getRegionId())).thenReturn(Optional.of(annotation));
+    doNothing().when(annotationRepository).delete(any(Annotation.class));
+
+    // Act
+    annotationService.deleteRegion(SCROLL_ID, annotation.getRegionId());
+
+    // Assert
+    // Verify that the repository's delete method was called exactly once.
+    verify(annotationRepository, times(1)).delete(annotation);
+  }
+
+  @Test
+  void deleteRegion_shouldThrowResourceNotFoundException_whenRegionDoesNotExist() {
+    // Arrange
+    UUID nonExistentRegionId = UUID.randomUUID();
+    when(annotationRepository.findByRegionId(nonExistentRegionId)).thenReturn(Optional.empty());
+
+    // Act & Assert
+    assertThrows(ResourceNotFoundException.class,
+            () -> annotationService.deleteRegion(SCROLL_ID, nonExistentRegionId));
+
+    // Verify that the delete method was never called.
+    verify(annotationRepository, never()).delete(any());
+  }
+
+  @Test
+  void deleteRegion_shouldThrowResourceNotFoundException_whenRegionDoesNotBelongToScroll() {
+    // Arrange
+    String wrongScrollId = SCROLL_ID + "-wrong";
+
+    when(annotationRepository.findByRegionId(annotation.getRegionId())).thenReturn(Optional.of(annotation));
+
+    // Act & Assert
+    // Call the service with the WRONG scrollId and assert the exception.
+    assertThrows(ResourceNotFoundException.class,
+            () -> annotationService.deleteRegion(wrongScrollId, annotation.getRegionId()));
+
+    // Verify that the delete method was never called because the check failed.
+    verify(annotationRepository, never()).delete(any());
+  }
 }
