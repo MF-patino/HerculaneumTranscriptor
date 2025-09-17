@@ -92,7 +92,21 @@ public class AnnotationServiceImpl implements AnnotationService {
 
   @Override
   public BoxRegion updateRegion(String scrollId, UUID regionId, NewBoxRegion updatedRegion) throws ResourceNotFoundException {
-    return null;
+    // Find the annotation by its unique internal ID.
+    Annotation annotation = annotationRepository.findByRegionId(regionId)
+            .orElseThrow(() -> new ResourceNotFoundException("Cannot update region: region not found"));
+
+    // Make sure the annotation belongs to the parent scroll.
+    if (!annotation.getScroll().getScrollId().equals(scrollId))
+      throw new ResourceNotFoundException("Cannot update region: it does not belong to specified scroll");
+
+    // Update fields with DTO information
+    annotation.setCoordinates(annotationMapper.coordinatesDtoToEntityCoordinates(updatedRegion.getCoordinates()));
+    annotation.setTranscription(updatedRegion.getTranscription());
+
+    // Save and return updated annotation
+    Annotation savedAnnotation = annotationRepository.save(annotation);
+    return annotationMapper.annotationEntityToBoxRegionDto(savedAnnotation);
   }
 
   @Override

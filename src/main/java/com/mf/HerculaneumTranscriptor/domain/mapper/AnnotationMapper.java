@@ -3,6 +3,7 @@ package com.mf.HerculaneumTranscriptor.domain.mapper;
 import annotation.dto.BoxRegion;
 import annotation.dto.NewBoxRegion;
 import com.mf.HerculaneumTranscriptor.domain.Annotation;
+import com.mf.HerculaneumTranscriptor.domain.Coordinates;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
@@ -22,4 +23,6 @@ public interface AnnotationMapper {
   @Mapping(source = "transcription", target = "basicInfo.transcription")
   @Mapping(source = "coordinates", target = "basicInfo.coordinates")
   BoxRegion annotationEntityToBoxRegionDto(Annotation annotation);
+
+  Coordinates coordinatesDtoToEntityCoordinates(annotation.dto.Coordinates coordinatesDto);
 }

@@ -1,7 +1,7 @@
 services:
   # PostgreSQL instance for data persistence
   db:
-    image: postgres
+    image: postgres:15
     ports:
       - "5432:5432"
 

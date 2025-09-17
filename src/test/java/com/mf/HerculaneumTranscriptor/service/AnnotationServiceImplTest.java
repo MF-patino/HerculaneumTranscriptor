@@ -87,10 +87,11 @@ public class AnnotationServiceImplTest {
     annotation.setAuthor(author);
     annotation.setScroll(scroll);
     annotation.setCoordinates(coordinates);
+    annotation.setTranscription("test transcription");
 
     newBoxRegionDto = new NewBoxRegion();
     newBoxRegionDto.setCoordinates(coordinatesDto);
-    newBoxRegionDto.setTranscription("test transcription");
+    newBoxRegionDto.setTranscription(annotation.getTranscription());
 
     boxRegionDto = new BoxRegion();
     boxRegionDto.setBasicInfo(newBoxRegionDto);
@@ -263,5 +264,71 @@ public class AnnotationServiceImplTest {
 
     // Verify that the delete method was never called because the check failed.
     verify(annotationRepository, never()).delete(any());
+  }
+
+  // Tests for updateRegion
+
+  @Test
+  void updateRegion_shouldUpdateAndReturnRegion_whenDataIsValid() {
+    // Arrange
+    Coordinates mappedCoords = new Coordinates(10f, 20f, 100f, 200f);
+    String updatedTranscription = "updated " + newBoxRegionDto.getTranscription();
+    newBoxRegionDto.setTranscription(updatedTranscription);
+
+    // Mock the repository to find the existing annotation.
+    when(annotationRepository.findByRegionId(annotation.getRegionId())).thenReturn(Optional.of(annotation));
+
+    // Mock the save operation. Using thenAnswer is a robust way to return the modified object.
+    when(annotationRepository.save(any(Annotation.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+    // Mock the mapper calls.
+    when(annotationMapper.coordinatesDtoToEntityCoordinates(any(annotation.dto.Coordinates.class))).thenReturn(mappedCoords);
+    when(annotationMapper.annotationEntityToBoxRegionDto(any(Annotation.class))).thenReturn(boxRegionDto);
+
+    // Act
+    BoxRegion result = annotationService.updateRegion(SCROLL_ID, annotation.getRegionId(), newBoxRegionDto);
+
+    // Assert
+    assertThat(result).isEqualTo(boxRegionDto);
+
+    // Use an ArgumentCaptor to inspect the entity that was saved.
+    ArgumentCaptor<Annotation> annotationCaptor = ArgumentCaptor.forClass(Annotation.class);
+    verify(annotationRepository).save(annotationCaptor.capture());
+    Annotation savedAnnotation = annotationCaptor.getValue();
+
+    // Verify that the entity's fields were correctly updated.
+    assertThat(savedAnnotation.getTranscription()).isEqualTo(updatedTranscription);
+    assertThat(savedAnnotation.getCoordinates()).isEqualTo(mappedCoords);
+  }
+
+  @Test
+  void updateRegion_shouldThrowResourceNotFoundException_whenRegionDoesNotExist() {
+    // Arrange
+    UUID nonExistentRegionId = UUID.randomUUID();
+    // Mock the repository to return empty, simulating "not found".
+    when(annotationRepository.findByRegionId(nonExistentRegionId)).thenReturn(Optional.empty());
+
+    // Act & Assert
+    assertThrows(ResourceNotFoundException.class,
+            () -> annotationService.updateRegion(SCROLL_ID, nonExistentRegionId, newBoxRegionDto));
+
+    // Verify no save was ever attempted.
+    verify(annotationRepository, never()).save(any());
+  }
+
+  @Test
+  void updateRegion_shouldThrowResourceNotFoundException_whenRegionDoesNotBelongToScroll() {
+    // Arrange
+    String wrongScrollId = SCROLL_ID + "-wrong";
+    // Mock the repository to successfully find the annotation.
+    when(annotationRepository.findByRegionId(annotation.getRegionId())).thenReturn(Optional.of(annotation));
+
+    // Act & Assert
+    // Call the service with the wrong scroll ID.
+    ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class,
+            () -> annotationService.updateRegion(wrongScrollId, annotation.getRegionId(), newBoxRegionDto));
+
+    // Verify no save was ever attempted.
+    verify(annotationRepository, never()).save(any());
   }
 }
