@@ -53,7 +53,7 @@ public interface AnnotationService {
    * @return The updated BoxRegion DTO.
    * @throws com.mf.HerculaneumTranscriptor.exception.ResourceNotFoundException if the scroll or region does not exist.
    */
-  @PreAuthorize("(hasRole('ROOT') or hasRole('ADMIN')) or (hasRole('WRITE') and @securityLogic.canModifyRegion(authentication, #regionId))")
+  @PreAuthorize("@securityLogic.canModifyRegion(authentication, #regionId)")
   BoxRegion updateRegion(String scrollId, UUID regionId, NewBoxRegion updatedRegion) throws ResourceNotFoundException;
 
   /**
@@ -65,7 +65,7 @@ public interface AnnotationService {
    * @param regionId The unique identifier of the region to delete.
    * @throws com.mf.HerculaneumTranscriptor.exception.ResourceNotFoundException if the scroll or region does not exist.
    */
-  @PreAuthorize("(hasRole('ROOT') or hasRole('ADMIN')) or (hasRole('WRITE') and @securityLogic.canModifyRegion(authentication, #regionId))")
+  @PreAuthorize("@securityLogic.canModifyRegion(authentication, #regionId)")
   void deleteRegion(String scrollId, UUID regionId) throws ResourceNotFoundException;
 
   /**
