@@ -8,10 +8,10 @@ import com.mf.HerculaneumTranscriptor.domain.Annotation;
 import com.mf.HerculaneumTranscriptor.domain.Scroll;
 import com.mf.HerculaneumTranscriptor.domain.User;
 import com.mf.HerculaneumTranscriptor.domain.mapper.AnnotationMapper;
-import com.mf.HerculaneumTranscriptor.exception.ResourceAlreadyExistsException;
 import com.mf.HerculaneumTranscriptor.exception.ResourceNotFoundException;
 import com.mf.HerculaneumTranscriptor.repository.AnnotationRepository;
 import com.mf.HerculaneumTranscriptor.repository.ScrollRepository;
+import com.mf.HerculaneumTranscriptor.repository.VoteRepository;
 import com.mf.HerculaneumTranscriptor.security.JwtUserDetails;
 import com.mf.HerculaneumTranscriptor.service.AnnotationService;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +19,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.Date;
@@ -32,6 +33,7 @@ public class AnnotationServiceImpl implements AnnotationService {
   private final AnnotationRepository annotationRepository;
   private final ScrollRepository scrollRepository;
   private final AnnotationMapper annotationMapper;
+  private final VoteRepository voteRepository;
 
   @Override
   public RegionUpdateResponse getScrollRegions(String scrollId, Date since) throws ResourceNotFoundException {
@@ -124,7 +126,39 @@ public class AnnotationServiceImpl implements AnnotationService {
   }
 
   @Override
-  public BoxRegion voteOnRegion(String scrollId, UUID regionId, Vote vote) throws ResourceNotFoundException, ResourceAlreadyExistsException {
-    return null;
+  @Transactional // This is a critical multi-step write operation
+  public BoxRegion voteOnRegion(String scrollId, UUID regionId, Vote voteDto) throws ResourceNotFoundException {
+    // Find the annotation by its unique internal ID.
+    Annotation annotation = annotationRepository.findByRegionId(regionId)
+            .orElseThrow(() -> new ResourceNotFoundException("Annotation not found"));
+
+    // Make sure the annotation belongs to the parent scroll.
+    if (!annotation.getScroll().getScrollId().equals(scrollId))
+      throw new ResourceNotFoundException("Annotation does not belong to specified scroll");
+
+    // Find the caster of the vote from the security context.
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    User caster;
+
+    if (authentication.getPrincipal() instanceof JwtUserDetails)
+      caster = ((JwtUserDetails) authentication.getPrincipal()).getUser();
+    else throw new BadCredentialsException("User not authenticated through a JWT");
+
+    com.mf.HerculaneumTranscriptor.domain.Vote vote  = voteRepository.findByUserAndAnnotation(caster, annotation).orElse(null);
+
+    if (vote == null)
+      vote = new com.mf.HerculaneumTranscriptor.domain.Vote(caster, annotation, voteDto.getVote());
+    else
+      vote.setVoteValue(voteDto.getVote());
+
+    // Create or update the cast vote
+    voteRepository.save(vote);
+
+    // Calculate and update annotation certainty
+    Float avgCertainty = voteRepository.calculateAverageVote(annotation.getId());
+    annotation.setCertaintyScore(avgCertainty != null ? avgCertainty : -1.0f);
+    Annotation updatedAnnotation = annotationRepository.save(annotation);
+
+    return annotationMapper.annotationEntityToBoxRegionDto(updatedAnnotation);
   }
 }

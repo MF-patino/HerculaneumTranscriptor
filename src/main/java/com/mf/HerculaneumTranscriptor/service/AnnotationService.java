@@ -1,6 +1,5 @@
 package com.mf.HerculaneumTranscriptor.service;
 
-import com.mf.HerculaneumTranscriptor.exception.ResourceAlreadyExistsException;
 import com.mf.HerculaneumTranscriptor.exception.ResourceNotFoundException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import annotation.dto.BoxRegion;
@@ -69,18 +68,17 @@ public interface AnnotationService {
   void deleteRegion(String scrollId, UUID regionId) throws ResourceNotFoundException;
 
   /**
-   * Casts a vote on the certainty of a region's transcription.
-   * Requires the user to have at least 'WRITE' permissions. A user can only vote once per region.
+   * Casts a vote on the certainty of a region's transcription. Each user can leave a valuation,
+   * with repeated vote casting overwriting the previous one.
+   * Requires the user to have at least 'WRITE' permissions.
    *
    * @param scrollId The identifier of the scroll containing the region.
    * @param regionId The unique identifier of the region to vote on.
    * @param vote The user's vote DTO.
    * @return The updated BoxRegion DTO, reflecting the new certainty score.
-   * @throws com.mf.HerculaneumTranscriptor.exception.ResourceNotFoundException if the scroll or region does not exist.
-   * @throws com.mf.HerculaneumTranscriptor.exception.ResourceAlreadyExistsException if the user has already voted on this region.
-   *
+   * @throws com.mf.HerculaneumTranscriptor.exception.ResourceNotFoundException if the scroll or region does not exist..
    */
   @PreAuthorize("hasRole('WRITE') or hasRole('ROOT') or hasRole('ADMIN')")
-  BoxRegion voteOnRegion(String scrollId, UUID regionId, Vote vote) throws ResourceNotFoundException, ResourceAlreadyExistsException;
+  BoxRegion voteOnRegion(String scrollId, UUID regionId, Vote vote) throws ResourceNotFoundException;
 
 }

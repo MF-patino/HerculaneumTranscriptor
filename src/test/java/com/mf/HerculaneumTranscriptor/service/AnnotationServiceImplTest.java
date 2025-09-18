@@ -3,14 +3,12 @@ package com.mf.HerculaneumTranscriptor.service;
 import annotation.dto.BoxRegion;
 import annotation.dto.NewBoxRegion;
 import annotation.dto.RegionUpdateResponse;
-import com.mf.HerculaneumTranscriptor.domain.Annotation;
-import com.mf.HerculaneumTranscriptor.domain.Coordinates;
-import com.mf.HerculaneumTranscriptor.domain.Scroll;
-import com.mf.HerculaneumTranscriptor.domain.User;
+import com.mf.HerculaneumTranscriptor.domain.*;
 import com.mf.HerculaneumTranscriptor.domain.mapper.AnnotationMapper;
 import com.mf.HerculaneumTranscriptor.exception.ResourceNotFoundException;
 import com.mf.HerculaneumTranscriptor.repository.AnnotationRepository;
 import com.mf.HerculaneumTranscriptor.repository.ScrollRepository;
+import com.mf.HerculaneumTranscriptor.repository.VoteRepository;
 import com.mf.HerculaneumTranscriptor.security.JwtUserDetails;
 import com.mf.HerculaneumTranscriptor.service.impl.AnnotationServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
@@ -48,6 +46,8 @@ public class AnnotationServiceImplTest {
   private ScrollRepository scrollRepository;
   @Mock
   private AnnotationMapper annotationMapper;
+  @Mock
+  private VoteRepository voteRepository;
 
   private Scroll scroll;
   private User author;
@@ -202,7 +202,7 @@ public class AnnotationServiceImplTest {
   }
 
   @Test
-  void createRegion_shouldThrowBadCredentialsException_whenAuthenticatedUserNotInDb() {
+  void createRegion_shouldThrowBadCredentialsException_whenUserNotAuthenticatedThroughJWT() {
     // Arrange
     Authentication authentication = mock(Authentication.class);
     SecurityContext securityContext = mock(SecurityContext.class);
@@ -325,10 +325,159 @@ public class AnnotationServiceImplTest {
 
     // Act & Assert
     // Call the service with the wrong scroll ID.
-    ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class,
+    assertThrows(ResourceNotFoundException.class,
             () -> annotationService.updateRegion(wrongScrollId, annotation.getRegionId(), newBoxRegionDto));
 
     // Verify no save was ever attempted.
     verify(annotationRepository, never()).save(any());
+  }
+
+  // Tests for voteOnRegion
+
+  @Test
+  void voteOnRegion_shouldCreateNewVote_whenUserVotesForTheFirstTime() {
+    // Arrange
+    // Mock the security context to provide an authenticated user
+    Authentication authentication = mock(Authentication.class);
+    UserDetails userDetails = new JwtUserDetails(author);
+
+    SecurityContext securityContext = mock(SecurityContext.class);
+    when(securityContext.getAuthentication()).thenReturn(authentication);
+    SecurityContextHolder.setContext(securityContext);
+    when(authentication.getPrincipal()).thenReturn(userDetails);
+
+    annotation.dto.Vote voteDto = new annotation.dto.Vote().vote(5);
+
+    when(annotationRepository.findByRegionId(annotation.getRegionId())).thenReturn(Optional.of(annotation));
+    // Simulate that no existing vote is found
+    when(voteRepository.findByUserAndAnnotation(author, annotation)).thenReturn(Optional.empty());
+
+    // Mock the average calculation to return a new average
+    when(voteRepository.calculateAverageVote(annotation.getId())).thenReturn(4.5f);
+
+    // Mock the final save and map calls
+    when(annotationRepository.save(any(Annotation.class))).thenReturn(annotation);
+    when(annotationMapper.annotationEntityToBoxRegionDto(any(Annotation.class))).thenReturn(boxRegionDto);
+
+    // Act
+    BoxRegion result = annotationService.voteOnRegion(SCROLL_ID, annotation.getRegionId(), voteDto);
+
+    // Assert
+    // Check the final result
+    assertThat(result).isEqualTo(boxRegionDto);
+
+    // Capture the Vote entity to verify it was created correctly
+    ArgumentCaptor<Vote> voteCaptor = ArgumentCaptor.forClass(Vote.class);
+    verify(voteRepository).save(voteCaptor.capture());
+    Vote savedVote = voteCaptor.getValue();
+    assertThat(savedVote.getUser()).isEqualTo(author);
+    assertThat(savedVote.getAnnotation()).isEqualTo(annotation);
+    assertThat(savedVote.getVoteValue()).isEqualTo(5);
+
+    // Capture the Annotation entity to verify the score was updated
+    ArgumentCaptor<Annotation> annotationCaptor = ArgumentCaptor.forClass(Annotation.class);
+    verify(annotationRepository, times(1)).save(annotationCaptor.capture());
+    Annotation savedAnnotation = annotationCaptor.getValue();
+    assertThat(savedAnnotation.getCertaintyScore()).isEqualTo(4.5f);
+
+    // Clean up context
+    SecurityContextHolder.clearContext();
+  }
+
+  @Test
+  void voteOnRegion_shouldUpdateExistingVote_whenUserVotesAgain() {
+    // Arrange
+    // Mock the security context to provide an authenticated user
+    Authentication authentication = mock(Authentication.class);
+    UserDetails userDetails = new JwtUserDetails(author);
+
+    SecurityContext securityContext = mock(SecurityContext.class);
+    when(securityContext.getAuthentication()).thenReturn(authentication);
+    SecurityContextHolder.setContext(securityContext);
+    when(authentication.getPrincipal()).thenReturn(userDetails);
+
+    // Prepare DTOs and Mocks
+    annotation.dto.Vote voteDto = new annotation.dto.Vote().vote(3); // The new vote value
+    Vote existingVote = new Vote(author, annotation, 5); // The old vote
+
+    when(annotationRepository.findByRegionId(annotation.getRegionId())).thenReturn(Optional.of(annotation));
+    // Simulate finding the existing vote this time
+    when(voteRepository.findByUserAndAnnotation(author, annotation)).thenReturn(Optional.of(existingVote));
+
+    when(voteRepository.calculateAverageVote(annotation.getId())).thenReturn(3.5f);
+    when(annotationRepository.save(any(Annotation.class))).thenReturn(annotation);
+    when(annotationMapper.annotationEntityToBoxRegionDto(any(Annotation.class))).thenReturn(boxRegionDto);
+
+    // Act
+    annotationService.voteOnRegion(SCROLL_ID, annotation.getRegionId(), voteDto);
+
+    // Assert
+    // Capture the Vote entity and verify its value was updated before saving
+    ArgumentCaptor<Vote> voteCaptor = ArgumentCaptor.forClass(Vote.class);
+    verify(voteRepository).save(voteCaptor.capture());
+    Vote savedVote = voteCaptor.getValue();
+    assertThat(savedVote.getVoteValue()).isEqualTo(3); // Check that the value was changed
+
+    // Verify the annotation's score was updated
+    ArgumentCaptor<Annotation> annotationCaptor = ArgumentCaptor.forClass(Annotation.class);
+    verify(annotationRepository).save(annotationCaptor.capture());
+    Annotation savedAnnotation = annotationCaptor.getValue();
+    assertThat(savedAnnotation.getCertaintyScore()).isEqualTo(3.5f);
+
+    // Clean up context
+    SecurityContextHolder.clearContext();
+  }
+
+  @Test
+  void voteOnRegion_shouldThrowBadCredentialsException_whenUserNotAuthorizedThroughJWT() {
+    // Arrange
+    Authentication authentication = mock(Authentication.class);
+    SecurityContext securityContext = mock(SecurityContext.class);
+    when(securityContext.getAuthentication()).thenReturn(authentication);
+    SecurityContextHolder.setContext(securityContext);
+    // Simulate the authenticated user not having been authenticated via JWT filters
+    when(authentication.getPrincipal()).thenReturn(USERNAME);
+
+    // Prepare DTOs and Mocks
+    annotation.dto.Vote voteDto = new annotation.dto.Vote().vote(3); // The new vote value
+
+    when(annotationRepository.findByRegionId(annotation.getRegionId())).thenReturn(Optional.of(annotation));
+
+    // Act & Assert
+    assertThrows(BadCredentialsException.class,
+            () -> annotationService.voteOnRegion(SCROLL_ID, annotation.getRegionId(), voteDto));
+
+    // Clean up context
+    SecurityContextHolder.clearContext();
+  }
+
+  @Test
+  void voteOnRegion_shouldThrowResourceNotFoundException_whenAnnotationDoesNotExist() {
+    // Arrange
+    UUID nonExistentRegionId = UUID.randomUUID();
+    annotation.dto.Vote voteDto = new annotation.dto.Vote().vote(4);
+    when(annotationRepository.findByRegionId(nonExistentRegionId)).thenReturn(Optional.empty());
+
+    // Act & Assert
+    assertThrows(ResourceNotFoundException.class,
+            () -> annotationService.voteOnRegion(SCROLL_ID, nonExistentRegionId, voteDto));
+
+    verify(voteRepository, never()).save(any(Vote.class));
+    verify(annotationRepository, never()).save(any(Annotation.class));
+  }
+
+  @Test
+  void voteOnRegion_shouldThrowResourceNotFoundException_whenAnnotationDoesNotBelongToScroll() {
+    // Arrange
+    String wrongScrollId = SCROLL_ID + "-wrong";
+    annotation.dto.Vote voteDto = new annotation.dto.Vote().vote(4);
+    when(annotationRepository.findByRegionId(annotation.getRegionId())).thenReturn(Optional.of(annotation));
+
+    // Act & Assert
+    assertThrows(ResourceNotFoundException.class,
+            () -> annotationService.voteOnRegion(wrongScrollId, annotation.getRegionId(), voteDto));
+
+    verify(voteRepository, never()).save(any(Vote.class));
+    verify(annotationRepository, never()).save(any(Annotation.class));
   }
 }

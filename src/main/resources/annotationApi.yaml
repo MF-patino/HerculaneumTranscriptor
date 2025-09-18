@@ -204,8 +204,9 @@ paths:
       summary: Vote on the certainty of a transcription
       description: |
         Allows a logged-in user to submit their certainty score (0-5) for a specific region.
+        Each user can leave a valuation, with repeated vote casting overwriting the previous one.
         The server will recalculate and update the region's `certaintyScore`.
-        Requires `write` permission. A user can only vote once per region.
+        Requires `write` permission.
       operationId: voteOnRegion
       security:
         - bearerAuth: []

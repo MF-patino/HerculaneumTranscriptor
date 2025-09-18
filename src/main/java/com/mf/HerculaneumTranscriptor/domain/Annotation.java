@@ -10,6 +10,8 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Instant;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 @Entity @Table(name = "ANNOTATIONS")
@@ -35,6 +37,9 @@ public class Annotation {
 
   @Column(nullable = false, columnDefinition = "float default 0")
   private float certaintyScore = 0.0f;
+
+  @OneToMany(mappedBy = "annotation", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+  private Set<Vote> votes = new HashSet<>();
 
   @CreationTimestamp
   @Column(nullable = false, updatable = false)
