@@ -7,6 +7,7 @@ import annotation.dto.RegionUpdateResponse;
 import annotation.dto.Vote;
 import com.mf.HerculaneumTranscriptor.service.AnnotationService;
 import lombok.AllArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -21,7 +22,7 @@ public class AnnotationController implements AnnotationsApi {
   @Override
   public ResponseEntity<BoxRegion> createRegion(String scrollId, NewBoxRegion newBoxRegion) {
     BoxRegion region = annotationService.createRegion(scrollId, newBoxRegion);
-    return ResponseEntity.ok(region);
+    return new ResponseEntity<>(region, HttpStatus.CREATED);
   }
 
   @Override
