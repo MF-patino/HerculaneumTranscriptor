@@ -23,6 +23,7 @@ api:
     pageSize: 64
   scrolls:
     storageDirectory: ./uploads/scrolls
+    useCloud: true
 
 security:
   # jwt expiration time in milliseconds

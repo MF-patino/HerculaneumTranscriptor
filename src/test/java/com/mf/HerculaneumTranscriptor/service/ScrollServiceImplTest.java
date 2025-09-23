@@ -55,6 +55,7 @@ public class ScrollServiceImplTest {
   @BeforeEach
   void setUp() {
     ReflectionTestUtils.setField(scrollService, "storageLocation", TEST_STORAGE_LOCATION);
+    ReflectionTestUtils.setField(scrollService, "useCloudStorage", false);
 
     // Create entity
     scroll = new Scroll();
