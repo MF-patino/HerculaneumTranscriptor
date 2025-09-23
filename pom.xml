@@ -33,7 +33,15 @@
     </properties>
 	<dependencies>
 
-		<!-- Dependencies needed JWT generation and validation -->
+        <!-- Dependencies needed for cloud storage of scroll images -->
+
+        <dependency>
+            <groupId>com.cloudinary</groupId>
+            <artifactId>cloudinary-http44</artifactId>
+            <version>1.39.0</version>
+        </dependency>
+
+		<!-- Dependencies needed for JWT generation and validation -->
 
 		<dependency>
 			<groupId>io.jsonwebtoken</groupId>
