@@ -1,0 +1,52 @@
+services:
+  db:
+    image: postgres:15 # Using a specific version for production deployment
+    ports:
+      - "5432:5432"
+
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: sa
+      POSTGRES_USER: sa
+      POSTGRES_DB: scrolls
+    volumes:
+      - db-data:/var/lib/postgresql/data # Persist database data
+
+  # The Spring Boot backend
+  backend:
+    build: . # To build the image from the Dockerfile in the current directory
+    ports:
+      - "8080:8080"
+    restart: always
+    depends_on:
+      - db
+    environment:
+      # These environment variables override application.properties
+      # Needed for connecting the backend to the database container.
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/scrolls
+      SPRING_DATASOURCE_PASSWORD: sa
+      SPRING_DATASOURCE_USERNAME: sa
+
+      # Configurable root user credentials
+      SECURITY_ROOTPROFILE_USERNAME: root
+      SECURITY_ROOTPROFILE_PASSWORD: root
+
+      # Configurable secret key for JWT generation
+      SECURITY_SECRET: 074575585bd48a11cf09a250c39c8bfc32878f11d057b3bf265cd1901563cd1a
+      # jwt expiration time in milliseconds
+      SECURITY_EXPIRATION: 3600000 # (1 hour)
+
+      # Configurable Cloudinary settings for image cloud storage
+      API_SCROLLS_USECLOUD: false
+      CLOUDINARY_API_KEY:
+      CLOUDINARY_API_SECRET:
+      CLOUDINARY_CLOUD_NAME:
+      API_SCROLLS_STORAGEDIRECTORY: /app/uploads/scrolls
+
+    # if not using cloud storage, images will be persisted in this volume
+    volumes:
+      - scroll-images:/app/uploads/scrolls
+
+volumes:
+  db-data: # Define the named volume for data persistence
+  scroll-images:
