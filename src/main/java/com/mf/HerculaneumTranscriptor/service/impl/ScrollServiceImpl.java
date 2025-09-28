@@ -11,10 +11,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import scroll.dto.NewScroll;
 import scroll.dto.Scroll;
 
@@ -142,7 +142,7 @@ public class ScrollServiceImpl implements ScrollService {
   }
 
   @Override
-  public Resource getScrollImage(String scrollId) throws ResourceNotFoundException, IOException {
+  public URI getScrollImageURL(String scrollId) throws ResourceNotFoundException {
     com.mf.HerculaneumTranscriptor.domain.Scroll scroll = scrollRepository.findByScrollId(scrollId)
             .orElseThrow(() -> new ResourceNotFoundException("Scroll not found"));
 
@@ -160,13 +160,25 @@ public class ScrollServiceImpl implements ScrollService {
         // Generate the signed URL
         String signedUrl = cloudinary.privateDownload(storageLocation.toString() + "/" + scrollId, "png", options);
 
-        return new UrlResource(signedUrl);
+        return new URI(signedUrl);
 
       } catch (Exception e) {
         // This can happen if credentials are bad or there's a network issue with Cloudinary
         throw new RuntimeException("Could not generate secure image URL.", e);
       }
     }
+
+    return ServletUriComponentsBuilder
+            .fromCurrentContextPath()
+            .path("/scrolls/")
+            .path(scrollId)
+            .path("/local-download").build().toUri();
+  }
+
+  @Override
+  public Resource getScrollImage(String scrollId) throws ResourceNotFoundException, IOException {
+    com.mf.HerculaneumTranscriptor.domain.Scroll scroll = scrollRepository.findByScrollId(scrollId)
+            .orElseThrow(() -> new ResourceNotFoundException("Scroll not found"));
 
     Path filePath = storageLocation.resolve(scroll.getImagePath()).normalize();
     InputStream in = Files.newInputStream(filePath);

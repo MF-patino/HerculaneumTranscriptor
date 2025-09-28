@@ -23,6 +23,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import scroll.dto.NewScroll;
 import scroll.dto.Scroll;
 
+import java.net.URI;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -146,10 +147,24 @@ public class ScrollControllerTest {
     when(scrollService.getScrollImage(SCROLL_ID)).thenReturn(imageResource);
 
     // Act & Assert
-    mockMvc.perform(get("/scrolls/{scrollId}", SCROLL_ID))
+    mockMvc.perform(get("/scrolls/{scrollId}/local-download", SCROLL_ID))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.IMAGE_PNG)) // Assuming the service sets this
             .andExpect(content().bytes(imageBytes));
+  }
+
+  // Tests for getScrollImageURL
+
+  @Test
+  void getScrollImageURL_shouldReturnURL_whenAuthenticated() throws Exception {
+    // Arrange
+    URI imageURI = new URI("https://cloudinary.com/signed/url/for/cloud-scroll-1");
+    when(scrollService.getScrollImageURL(SCROLL_ID)).thenReturn(imageURI);
+
+    // Act & Assert
+    mockMvc.perform(get("/scrolls/{scrollId}", SCROLL_ID))
+            .andExpect(status().isFound())
+            .andExpect(header().string("Location", imageURI.toString()));
   }
 
   // Tests for updateScroll

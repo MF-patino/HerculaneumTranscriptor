@@ -9,6 +9,7 @@ import scroll.dto.NewScroll;
 import scroll.dto.Scroll;
 
 import java.io.IOException;
+import java.net.URI;
 import java.util.List;
 
 /**
@@ -50,7 +51,17 @@ public interface ScrollService {
   void deleteScroll(String scrollId) throws ResourceNotFoundException, IOException;
 
   /**
-   * Retrieves the ink prediction image for a specific scroll as a loadable resource.
+   * Retrieves the ink prediction image URL for a specific scroll.
+   * Any authenticated user can invoke this method.
+   *
+   * @param scrollId The unique identifier of the scroll.
+   * @return A URL response object holding the URL.
+   * @throws com.mf.HerculaneumTranscriptor.exception.ResourceNotFoundException if the scroll does not exist.
+   */
+  URI getScrollImageURL(String scrollId) throws ResourceNotFoundException;
+
+  /**
+   * Retrieves a locally saved ink prediction image for a specific scroll as a loadable resource.
    * Any authenticated user can download the image.
    *
    * @param scrollId The unique identifier of the scroll.

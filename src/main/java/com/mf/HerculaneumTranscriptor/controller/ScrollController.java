@@ -3,7 +3,6 @@ package com.mf.HerculaneumTranscriptor.controller;
 import com.mf.HerculaneumTranscriptor.service.ScrollService;
 import lombok.AllArgsConstructor;
 import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
@@ -13,6 +12,7 @@ import scroll.dto.NewScroll;
 import scroll.dto.Scroll;
 
 import java.io.IOException;
+import java.net.URI;
 import java.util.List;
 
 @RestController
@@ -41,14 +41,14 @@ public class ScrollController implements ScrollsApi {
   @Override
   public ResponseEntity<Resource> getScrollImage(String scrollId) throws IOException {
     Resource inkImageResource = scrollService.getScrollImage(scrollId);
-
-    if (inkImageResource instanceof UrlResource){
-      return ResponseEntity.status(HttpStatus.FOUND).location(
-              inkImageResource.getURI()
-      ).build();
-    }
-
     return ResponseEntity.ok(inkImageResource);
+  }
+
+  @Override
+  public ResponseEntity<Void> getScrollImageURL(String scrollId) {
+    URI imageURL = scrollService.getScrollImageURL(scrollId);
+
+    return ResponseEntity.status(HttpStatus.FOUND).location(imageURL).build();
   }
 
   @Override
