@@ -1,11 +1,13 @@
 package com.mf.HerculaneumTranscriptor.service;
 
+import com.cloudinary.Cloudinary;
 import com.mf.HerculaneumTranscriptor.domain.Scroll;
 import com.mf.HerculaneumTranscriptor.domain.mapper.ScrollMapper;
 import com.mf.HerculaneumTranscriptor.exception.ResourceAlreadyExistsException;
 import com.mf.HerculaneumTranscriptor.exception.ResourceNotFoundException;
 import com.mf.HerculaneumTranscriptor.repository.ScrollRepository;
 import com.mf.HerculaneumTranscriptor.service.impl.ScrollServiceImpl;
+import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,10 +16,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.io.Resource;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import scroll.dto.NewScroll;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -41,6 +46,9 @@ public class ScrollServiceImplTest {
   @Mock
   private ScrollMapper scrollMapper;
 
+  @Mock
+  private Cloudinary cloudinary;
+
   // Reusable test data objects
   private Scroll scroll;
   private scroll.dto.Scroll scrollDto;
@@ -55,6 +63,7 @@ public class ScrollServiceImplTest {
   @BeforeEach
   void setUp() {
     ReflectionTestUtils.setField(scrollService, "storageLocation", TEST_STORAGE_LOCATION);
+    ReflectionTestUtils.setField(scrollService, "useCloudStorage", false);
 
     // Create entity
     scroll = new Scroll();
@@ -210,6 +219,65 @@ public class ScrollServiceImplTest {
 
     // Act & Assert
     assertThrows(ResourceNotFoundException.class, () -> scrollService.getScrollImage(SCROLL_ID));
+  }
+
+  // Tests for getScrollImageURL
+
+  @Test
+  void getScrollImageUrl_shouldReturnSignedUrl_whenImagePathIsCloudUrl() throws Exception {
+    // Arrange
+    String expectedSignedUrl = "https://cloudinary.com/signed/url/for/cloud-scroll-1";
+    scroll.setImagePath("https://res.cloudinary.com/your-cloud/image/upload/s--TOKEN--/v1678886000/scrolls/vesuvius-scroll-1.png");
+
+    // Mock the repository to return the scroll with a cloud URL
+    when(scrollRepository.findByScrollId(SCROLL_ID)).thenReturn(Optional.of(scroll));
+
+    // Mock the Cloudinary SDK calls
+    when(cloudinary.privateDownload(any(), any(), anyMap())).thenReturn(expectedSignedUrl);
+
+
+    // Act
+    URI resultUri = scrollService.getScrollImageURL(SCROLL_ID);
+
+    // Assert
+    assertThat(resultUri).isNotNull();
+    assertThat(resultUri.toString()).isEqualTo(expectedSignedUrl);
+  }
+
+  @Test
+  void getScrollImageUrl_shouldReturnLocalDownloadUrl_whenImagePathIsLocal() {
+    // Arrange
+    // Mock the repository to return the scroll with a local path
+    when(scrollRepository.findByScrollId(SCROLL_ID)).thenReturn(Optional.of(scroll));
+
+    // IMPORTANT: ServletUriComponentsBuilder needs a mock HTTP request to get the context path.
+    // We need to mock the static methods of RequestContextHolder.
+    HttpServletRequest mockRequest = mock(HttpServletRequest.class);
+    when(mockRequest.getContextPath()).thenReturn(""); // For "http://localhost"
+    when(mockRequest.getScheme()).thenReturn("http");
+    when(mockRequest.getServerName()).thenReturn("localhost");
+    when(mockRequest.getServerPort()).thenReturn(8080);
+    RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(mockRequest));
+
+
+    // Act
+    URI resultUri = scrollService.getScrollImageURL(SCROLL_ID);
+
+    // Assert
+    assertThat(resultUri).isNotNull();
+    assertThat(resultUri.toString()).isEqualTo("http://localhost:8080/scrolls/" + SCROLL_ID+ "/local-download");
+
+    // Clean up the static mock
+    RequestContextHolder.resetRequestAttributes();
+  }
+
+  @Test
+  void getScrollImageUrl_shouldThrowResourceNotFoundException_whenScrollDoesNotExist() {
+    // Arrange
+    when(scrollRepository.findByScrollId(SCROLL_ID)).thenReturn(Optional.empty());
+
+    // Act & Assert
+    assertThrows(ResourceNotFoundException.class, () -> scrollService.getScrollImageURL(SCROLL_ID));
   }
 
   // Tests for updateScroll

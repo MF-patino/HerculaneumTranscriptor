@@ -96,7 +96,7 @@ paths:
               schema:
                 $ref: 'userApi.yaml#/components/responses/Error'
 
-  /scrolls/{scrollId}:
+  /scrolls/{scrollId}/local-download:
     get:
       tags:
         - scrolls
@@ -123,6 +123,37 @@ paths:
               schema:
                 type: string
                 format: binary
+        '401':
+          $ref: 'userApi.yaml#/components/responses/UnauthorizedError'
+        '404':
+          description: Scroll or its image not found.
+          content:
+            application/json:
+              schema:
+                $ref: 'userApi.yaml#/components/responses/Error'
+
+  /scrolls/{scrollId}:
+    get:
+      tags:
+        - scrolls
+      summary: Get a scroll's ink prediction image URL location
+      description: |
+        Retrieves the ink prediction image URL a specific scroll.
+        It could point to Cloudinary or to a local download endpoint.
+      operationId: getScrollImageURL
+      security:
+        - bearerAuth: [ ]
+      parameters:
+        - name: scrollId
+          in: path
+          description: The unique identifier of the scroll.
+          required: true
+          schema:
+            type: string
+            example: 'vesuvius-scroll-1'
+      responses:
+        '302':
+          description: Contains the scroll's ink prediction image URL.
         '401':
           $ref: 'userApi.yaml#/components/responses/UnauthorizedError'
         '404':
