@@ -19,8 +19,6 @@ on:
 
   # For Continuous Integration
   pull_request:
-    branches:
-      - master
 
 # JOBS
 jobs:
