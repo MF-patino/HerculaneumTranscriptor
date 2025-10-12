@@ -41,6 +41,9 @@ public class Annotation {
   @OneToMany(mappedBy = "annotation", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
   private Set<Vote> votes = new HashSet<>();
 
+  @OneToMany(mappedBy = "annotation", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+  private Set<Comment> comments = new HashSet<>();
+
   @CreationTimestamp
   @Column(nullable = false, updatable = false)
   private Instant createdAt;

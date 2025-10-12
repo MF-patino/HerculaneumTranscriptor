@@ -1,9 +1,7 @@
 package com.mf.HerculaneumTranscriptor.repository;
 
 import com.mf.HerculaneumTranscriptor.domain.Annotation;
-import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.repository.CrudRepository;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Date;
 import java.util.List;
@@ -16,11 +14,4 @@ public interface AnnotationRepository extends CrudRepository<Annotation, Long> {
   // The following methods look into the field scroll.scrollId
   List<Annotation> findByScrollScrollId(String scrollId);
   List<Annotation> findByScrollScrollIdAndUpdatedAtAfter(String scrollId, Date timestamp);
-
-  boolean existsByRegionId(UUID regionId);
-
-  // When a scroll is deleted, this will delete all annotations associated with it
-  @Transactional
-  @Modifying
-  long deleteByScrollScrollId(String scrollId);
 }
