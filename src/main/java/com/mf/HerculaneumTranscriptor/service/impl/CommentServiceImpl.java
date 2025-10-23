@@ -61,8 +61,33 @@ public class CommentServiceImpl implements CommentService {
   }
 
   @Override
-  public Comment addCommentToRegion(String scrollId, UUID regionId, CommentContent commentContent) throws ResourceNotFoundException {
-    return null;
+  public comment.dto.Comment addCommentToRegion(String scrollId, UUID regionId, CommentContent commentContent) throws ResourceNotFoundException {
+    // Find the parent annotation and verify it belongs to the scroll.
+    Annotation parentAnnotation = annotationRepository.findByRegionId(regionId)
+            .orElseThrow(() -> new ResourceNotFoundException("Cannot add comment: Annotation not found with ID: " + regionId));
+    if (!parentAnnotation.getScroll().getScrollId().equals(scrollId)) {
+      throw new ResourceNotFoundException("Conflict: The specified region does not belong to the specified scroll.");
+    }
+
+    // Find the author of the comment from the security context.
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    User author;
+
+    if (authentication.getPrincipal() instanceof JwtUserDetails)
+      author = ((JwtUserDetails) authentication.getPrincipal()).getUser();
+    else throw new BadCredentialsException("User not authenticated through a JWT");
+
+    // Map DTO to entity and enrich with server-side data.
+    Comment newComment = commentMapper.commentContentDtoToCommentEntity(commentContent);
+    newComment.setCommentId(UUID.randomUUID()); // Generate a new, unique public ID
+    newComment.setAuthor(author);
+    newComment.setAnnotation(parentAnnotation);
+
+    // Save the new entity.
+    Comment savedComment = commentRepository.save(newComment);
+
+    // Map the saved entity back to a DTO for the response.
+    return commentMapper.commentEntityToCommentDto(savedComment);
   }
 
   @Override

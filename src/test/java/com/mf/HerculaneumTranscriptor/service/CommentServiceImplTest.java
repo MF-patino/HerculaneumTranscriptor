@@ -8,14 +8,23 @@ import com.mf.HerculaneumTranscriptor.domain.mapper.CommentMapper;
 import com.mf.HerculaneumTranscriptor.exception.ResourceNotFoundException;
 import com.mf.HerculaneumTranscriptor.repository.AnnotationRepository;
 import com.mf.HerculaneumTranscriptor.repository.CommentRepository;
+import com.mf.HerculaneumTranscriptor.security.JwtUserDetails;
 import com.mf.HerculaneumTranscriptor.service.impl.CommentServiceImpl;
+import comment.dto.CommentContent;
 import comment.dto.GetRegionComments200Response;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import user.dto.UserInfo;
 
 import java.time.Instant;
 import java.util.Date;
@@ -55,6 +64,7 @@ public class CommentServiceImplTest {
 
     author = new User();
     author.setUsername("testuser");
+    author.setPermissions(UserInfo.PermissionsEnum.READ);
 
     annotation = new Annotation();
     annotation.setRegionId(REGION_ID);
@@ -116,5 +126,71 @@ public class CommentServiceImplTest {
     // Act & Assert
     assertThrows(ResourceNotFoundException.class,
             () -> commentService.getRegionComments(SCROLL_ID, REGION_ID, null));
+  }
+
+  // Tests for addCommentToRegion
+
+  @Test
+  void addCommentToRegion_shouldCreateAndReturnComment_whenDataIsValid() {
+    // Arrange
+    CommentContent newCommentContent = new CommentContent().text("New content");
+
+    // Mock the security context to provide an authenticated user
+    Authentication authentication = mock(Authentication.class);
+    UserDetails userDetails = new JwtUserDetails(author);
+
+    SecurityContext securityContext = mock(SecurityContext.class);
+    when(securityContext.getAuthentication()).thenReturn(authentication);
+    SecurityContextHolder.setContext(securityContext);
+    when(authentication.getPrincipal()).thenReturn(userDetails);
+
+    when(annotationRepository.findByRegionId(REGION_ID)).thenReturn(Optional.of(annotation));
+    when(commentMapper.commentContentDtoToCommentEntity(newCommentContent)).thenReturn(new Comment());
+    when(commentRepository.save(any(Comment.class))).thenReturn(comment);
+    when(commentMapper.commentEntityToCommentDto(comment)).thenReturn(commentDto);
+
+    // Act
+    comment.dto.Comment result = commentService.addCommentToRegion(SCROLL_ID, REGION_ID, newCommentContent);
+
+    // Assert
+    assertThat(result).isEqualTo(commentDto);
+
+    ArgumentCaptor<Comment> commentCaptor = ArgumentCaptor.forClass(Comment.class);
+    verify(commentRepository).save(commentCaptor.capture());
+    Comment savedComment = commentCaptor.getValue();
+
+    assertThat(savedComment.getAuthor()).isEqualTo(author);
+    assertThat(savedComment.getAnnotation()).isEqualTo(annotation);
+
+    SecurityContextHolder.clearContext();
+  }
+
+  @Test
+  void addCommentToRegion_shouldThrowResourceNotFound_whenAnnotationDoesNotExist() {
+    // Arrange
+    when(annotationRepository.findByRegionId(REGION_ID)).thenReturn(Optional.empty());
+
+    // Act & Assert
+    assertThrows(ResourceNotFoundException.class,
+            () -> commentService.addCommentToRegion(SCROLL_ID, REGION_ID, new CommentContent().text("New content")));
+  }
+
+  @Test
+  void addCommentToRegion_shouldThrowBadCredentialsException_whenUserNotAuthenticatedThroughJWT() {
+    // Arrange
+    Authentication authentication = mock(Authentication.class);
+    SecurityContext securityContext = mock(SecurityContext.class);
+    when(securityContext.getAuthentication()).thenReturn(authentication);
+    SecurityContextHolder.setContext(securityContext);
+    // Simulate the authenticated user not having been authenticated via JWT filters
+    when(authentication.getPrincipal()).thenReturn("userName");
+
+    when(annotationRepository.findByRegionId(REGION_ID)).thenReturn(Optional.of(annotation));
+
+    // Act & Assert
+    assertThrows(BadCredentialsException.class,
+            () -> commentService.addCommentToRegion(SCROLL_ID, REGION_ID, new CommentContent().text("New content")));
+
+    SecurityContextHolder.clearContext();
   }
 }

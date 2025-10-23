@@ -19,8 +19,9 @@ public class CommentController implements CommentsApi {
   private final CommentService commentService;
 
   @Override
-  public ResponseEntity<Void> addCommentToRegion(String scrollId, UUID regionId, CommentContent commentContent) {
-    return null;
+  public ResponseEntity<Comment> addCommentToRegion(String scrollId, UUID regionId, CommentContent commentContent) {
+    Comment response = commentService.addCommentToRegion(scrollId, regionId, commentContent);
+    return new ResponseEntity<>(response, HttpStatus.CREATED);
   }
 
   @Override
