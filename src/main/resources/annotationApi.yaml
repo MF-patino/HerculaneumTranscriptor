@@ -80,7 +80,7 @@ paths:
             schema:
               $ref: '#/components/schemas/NewBoxRegion'
       responses:
-        '21Created':
+        '201':
           description: Region created successfully
           content:
             application/json:

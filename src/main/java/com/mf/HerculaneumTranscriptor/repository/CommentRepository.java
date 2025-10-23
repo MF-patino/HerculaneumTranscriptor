@@ -12,6 +12,6 @@ public interface CommentRepository extends CrudRepository<Comment, Long> {
   Optional<Comment> findByCommentId(UUID commentId);
 
   // The following methods look into the field annotation.regionId
-  List<Comment> findByAnnotationRegionId(UUID regionId);
-  List<Comment> findByAnnotationRegionIdAndUpdatedAtAfter(UUID regionId, Date timestamp);
+  List<Comment> findByAnnotationRegionIdOrderByCreatedAtDesc(UUID regionId);
+  List<Comment> findByAnnotationRegionIdAndUpdatedAtAfterOrderByCreatedAtDesc(UUID regionId, Date timestamp);
 }
