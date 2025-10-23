@@ -193,4 +193,42 @@ public class CommentServiceImplTest {
 
     SecurityContextHolder.clearContext();
   }
+
+  // Tests for deleteComment
+
+  @Test
+  void deleteComment_shouldDeleteComment_whenDataIsValid() {
+    // Arrange
+    when(commentRepository.findByCommentId(COMMENT_ID)).thenReturn(Optional.of(comment));
+    doNothing().when(commentRepository).delete(comment);
+
+    // Act
+    commentService.deleteComment(SCROLL_ID, REGION_ID, COMMENT_ID);
+
+    // Assert
+    verify(commentRepository, times(1)).delete(comment);
+  }
+
+  @Test
+  void deleteComment_shouldThrowResourceNotFound_whenCommentDoesNotExist() {
+    // Arrange
+    when(commentRepository.findByCommentId(COMMENT_ID)).thenReturn(Optional.empty());
+
+    // Act & Assert
+    assertThrows(ResourceNotFoundException.class,
+            () -> commentService.deleteComment(SCROLL_ID, REGION_ID, COMMENT_ID));
+    verify(commentRepository, never()).delete(any());
+  }
+
+  @Test
+  void deleteComment_shouldThrowResourceNotFound_whenCommentDoesNotBelongToRegion() {
+    // Arrange
+    UUID wrongRegionId = UUID.randomUUID();
+    when(commentRepository.findByCommentId(COMMENT_ID)).thenReturn(Optional.of(comment));
+
+    // Act & Assert
+    assertThrows(ResourceNotFoundException.class,
+            () -> commentService.deleteComment(SCROLL_ID, wrongRegionId, COMMENT_ID));
+    verify(commentRepository, never()).delete(any());
+  }
 }

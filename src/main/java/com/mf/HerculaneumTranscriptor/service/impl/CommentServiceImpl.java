@@ -92,6 +92,16 @@ public class CommentServiceImpl implements CommentService {
 
   @Override
   public void deleteComment(String scrollId, UUID regionId, UUID commentId) throws ResourceNotFoundException {
+    Comment commentToDelete = commentRepository.findByCommentId(commentId)
+            .orElseThrow(() -> new ResourceNotFoundException("Comment not found with ID: " + commentId));
 
+    // Verify the comment belongs to the correct annotation and scroll.
+    if (!commentToDelete.getAnnotation().getRegionId().equals(regionId) ||
+            !commentToDelete.getAnnotation().getScroll().getScrollId().equals(scrollId)) {
+      throw new ResourceNotFoundException("The comment does not belong to the specified region/scroll path.");
+    }
+
+    // Delete the comment.
+    commentRepository.delete(commentToDelete);
   }
 }

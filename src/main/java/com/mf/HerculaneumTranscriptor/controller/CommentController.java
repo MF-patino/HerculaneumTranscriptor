@@ -26,7 +26,8 @@ public class CommentController implements CommentsApi {
 
   @Override
   public ResponseEntity<Void> deleteComment(String scrollId, UUID regionId, UUID commentId) {
-    return null;
+    commentService.deleteComment(scrollId, regionId, commentId);
+    return ResponseEntity.noContent().build();
   }
 
   @Override
